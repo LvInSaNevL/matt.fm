@@ -1,3 +1,8 @@
+auth.json
+youtubeauth.json
+token.pickle
+refresh.token
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

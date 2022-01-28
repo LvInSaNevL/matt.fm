@@ -1,0 +1,20 @@
+{
+    "reddit": {
+        "client_id": "your_client_id",
+        "client_secret": "your_client_secret",
+        "user_agent": "An experimental bot to automate meme compilations, by Lv_InSaNe_vL",
+        "username": "your_reddit_username",
+        "password": "your_reddit_password"
+    },
+    "youtube": {
+        "installed":{
+            "client_id":"your_client_id",
+            "project_id":"your_project_id",
+            "auth_uri":"https://accounts.google.com/o/oauth2/auth",
+            "token_uri":"https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs",
+            "client_secret":"your_client_secret",
+            "redirect_uris":["your_redirect_uris","provided_by_Google"]
+        }
+    }
+}
