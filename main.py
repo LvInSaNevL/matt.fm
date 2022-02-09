@@ -24,15 +24,14 @@ def main():
                         username=auth['reddit']['username'],                     
                         password=auth['reddit']['password'])
 
+    regex = "((?<=(v|V)/)|(?<=be/)|(?<=(\?|\&)v=)|(?<=embed/))([\w-]+)"
     for i in redditAuth.multireddit('lv_insane_vl', 'music').hot(limit=250):
-        if any(x in i.url for x in youtubeURLs) and len(contnentLinks) < 100:
-            regex = "((?<=(v|V)/)|(?<=be/)|(?<=(\?|\&)v=)|(?<=embed/))([\w-]+)"
-            result = re.search(regex, i.url)
-            try:
-                if youtube.check_video_exist and not (i.url in contnentLinks):
+        result = re.search(regex, i.url)
+        if all(any(x in i.url for x in youtubeURLs),
+               len(contnentLinks) < 100, 
+               youtube.check_video_exist,
+               not (i.url in contnentLinks)):
                     contnentLinks.append(result.group())
-            except:
-                pass
 
     youtube.remove_from_playlist()
 
