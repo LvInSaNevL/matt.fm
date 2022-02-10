@@ -1,4 +1,5 @@
 import youtube
+import utils
 from ast import And
 from pydoc import cli
 import praw
@@ -13,7 +14,7 @@ youtubeURLs = ["www.youtube.com",
 contnentLinks = []
 
 def main():
-    print("Retreiving music")
+    utils.logPrint("Retreiving music", 0)
 
     with open("auth.json") as jsonfile:
             auth = json.load(jsonfile)
@@ -26,12 +27,17 @@ def main():
 
     regex = "((?<=(v|V)/)|(?<=be/)|(?<=(\?|\&)v=)|(?<=embed/))([\w-]+)"
     for i in redditAuth.multireddit('lv_insane_vl', 'music').hot(limit=250):
-        result = re.search(regex, i.url)
-        if all(any(x in i.url for x in youtubeURLs),
-               len(contnentLinks) < 100, 
-               youtube.check_video_exist,
-               not (i.url in contnentLinks)):
-                    contnentLinks.append(result.group())
+        try:
+            result = re.search(regex, i.url)
+            checks = (i.url not in youtubeURLs,
+                    len(contnentLinks) < 100,
+                    youtube.check_video_exist)
+
+            if all(checks):
+                contnentLinks.append(result.group())
+        finally:
+            continue
+
 
     youtube.remove_from_playlist()
 

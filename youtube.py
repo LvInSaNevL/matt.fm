@@ -1,11 +1,13 @@
 from http import HTTPStatus
 from pydoc import cli
+import datetime
 import re
 from urllib import response
 import requests
 import json
 from urllib.parse import urlparse
 import os
+import utils
 
 import google_auth_oauthlib
 import google.oauth2
@@ -13,10 +15,17 @@ import googleapiclient.discovery
 import googleapiclient.errors
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl",
           "https://www.googleapis.com/auth/youtube.readonly"]
-playlist = "PLRDuNIkwpnscZa3s5InD68MpZvpRmFyG8"
+playlist = "PLRDuNIkwpnsfJaOX5Bq3jrPtP2WfP_vBl"
+lastAuth = datetime.datetime.min
 
-def get_authenticated_service():
-    print("Authenticating service access and refresh token")
+def get_authenticated_service(lastAuth):
+    utils.logPrint("Authenticating service access and refresh token", 0)
+    nowAuth = datetime.datetime.now()
+    authDiff = nowAuth - lastAuth
+    if (authDiff.total_seconds() * 1000 < 100):
+        datetime.time.sleep(0.150)
+    
+    lastAuth = datetime.datetime.now()
 
     api_service_name = "youtube"
     api_version = "v3"
@@ -46,20 +55,18 @@ def get_authenticated_service():
                                                     )
     else: 
         credFlow = flow.run_local_server(port=0)
-        print(credFlow)
         with open('refresh.token', 'w+') as f:
             credToken = credFlow
             f.write(credFlow._refresh_token)
-            print('Saved Refresh Token to file: refresh.token')
+            utils.logPrint('Saved Refresh Token to file: refresh.token', 0)
     
-    print('Refresh Token:', credToken)
     return googleapiclient.discovery.build(api_service_name, api_version, credentials=credToken)
 
 def add_to_playlist(videoID):
-    print("Adding {0} to playlist".format(videoID))
+    utils.logPrint("Adding {0} to playlist".format(videoID), 0)
 
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-    youtube = get_authenticated_service()
+    youtube = get_authenticated_service(lastAuth)
 
     add_video_response = youtube.playlistItems().insert(
         part="snippet",
@@ -74,14 +81,14 @@ def add_to_playlist(videoID):
         )
     ).execute()
 
-    print(add_video_response)
+    utils.logPrint(add_video_response, 0)
 
 def remove_from_playlist():
-    print("Clearing out yesterdays music")
+    utils.logPrint("Clearing out yesterdays music", 0)
     toRemove = []
 
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-    youtube = get_authenticated_service()
+    youtube = get_authenticated_service(lastAuth)
 
     request = youtube.playlistItems().list(
         part = "snippet,contentDetails",
@@ -89,14 +96,13 @@ def remove_from_playlist():
         maxResults = 50
     )
     response = request.execute()
+    utils.logPrint(response, 0)
 
     playlist_items = []
     while request is not None:
-        response = request.execute()
         playlist_items += response["items"]
         request = youtube.playlistItems().list_next(request, response)
-
-    print(f"total: {len(playlist_items)}")
+    
     for t in playlist_items:
         youtube.playlistItems().delete(
             id = t["id"]
