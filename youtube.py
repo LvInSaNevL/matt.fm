@@ -1,8 +1,11 @@
+from ctypes import util
 from http import HTTPStatus
+import sys
 from pydoc import cli
 import datetime
 import re
 from urllib import response
+from urllib.error import HTTPError
 import requests
 import json
 from urllib.parse import urlparse
@@ -22,7 +25,7 @@ def get_authenticated_service(lastAuth):
     utils.logPrint("Authenticating service access and refresh token", 0)
     nowAuth = datetime.datetime.now()
     authDiff = nowAuth - lastAuth
-    if (authDiff.total_seconds() * 1000 < 100):
+    if (authDiff.total_seconds() * 1000 < 250):
         datetime.time.sleep(0.150)
     
     lastAuth = datetime.datetime.now()
@@ -68,20 +71,30 @@ def add_to_playlist(videoID):
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     youtube = get_authenticated_service(lastAuth)
 
-    add_video_response = youtube.playlistItems().insert(
-        part="snippet",
-        body=dict(
-            snippet=dict(
-                playlistId=playlist,
-                resourceId=dict(
-                    kind="youtube#video",
-                    videoId=videoID
+    try:
+        add_video_response = youtube.playlistItems().insert(
+            part="snippet",
+            body=dict(
+                snippet=dict(
+                    playlistId=playlist,
+                    resourceId=dict(
+                        kind="youtube#video",
+                        videoId=videoID
+                    )
                 )
             )
-        )
-    ).execute()
+        ).execute()
+        utils.logPrint(add_video_response, 0)
+    except googleapiclient.errors.HttpError as err:
+        if err.reason == "quotaExceeded":
+            utils.logPrint("Quota limit exceded, terminating program.", 4)
+            sys.exit()
+        elif err.reason == "backendError":
+            datetime.time.sleep(0.250)
+            add_to_playlist(videoID)
+        else:
+            utils.logPrint("Unhandled exception while adding video: " + str(err), 4)
 
-    utils.logPrint(add_video_response, 0)
 
 def remove_from_playlist():
     utils.logPrint("Clearing out yesterdays music", 0)
@@ -99,18 +112,32 @@ def remove_from_playlist():
     utils.logPrint(response, 0)
 
     playlist_items = []
-    while request is not None:
+    utils.logPrint("Getting previous days content", 0)
+    while len(playlist_items) <= len(response["items"]):
         playlist_items += response["items"]
         request = youtube.playlistItems().list_next(request, response)
-    
+    utils.logPrint(playlist_items, 0)
+
     for t in playlist_items:
-        youtube.playlistItems().delete(
-            id = t["id"]
-        ).execute()
+        try:
+            utils.logPrint("Removing " + t["id"], 0)
+            youtube.playlistItems().delete(
+                id = t["id"]
+            ).execute()
+        except:
+            utils.logPrint(sys.exc_info()[0], 2)
 
 def check_video_exist(videoID):
+    utils.logPrint("Checking if " + videoID + " exists", 0)
     try:
-        request = requests.head("https://music.youtube.com/watch?v=".join(videoID))
-        return request.status_code == HTTPStatus.OK
+        headers = {'Accept-Encoding': 'identity'}
+        url = "https://yt.lemnoslife.com/videos?part=status,contentDetails,music&id=" + videoID
+        request = requests.get(url=url, headers=headers)
+        data = json.loads(request.text)
+        duration = int(data['items'][0]['contentDetails']['duration']) / 60
+        if (data['items'][0]['music']['available']) and (duration < 10):
+            return True
+        else:
+            return False
     except:
         return False
