@@ -27,7 +27,7 @@ def main():
 
     regex = "((?<=(v|V)/)|(?<=be/)|(?<=(\?|\&)v=)|(?<=embed/))([\w-]+)"
     for i in redditAuth.multireddit('lv_insane_vl', 'music').hot(limit=250):
-        if len(contnentLinks) <= 100:
+        if len(contnentLinks) <= 10:
             try:
                 result = re.search(regex, i.url)
                 checks = (i.url not in youtubeURLs,
@@ -41,7 +41,7 @@ def main():
                 continue
 
 
-    youtube.remove_from_playlist()
+    # youtube.remove_from_playlist()
 
     for t in contnentLinks:
         youtube.add_to_playlist(t)

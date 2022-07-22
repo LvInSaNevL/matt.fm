@@ -18,7 +18,7 @@ import googleapiclient.discovery
 import googleapiclient.errors
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl",
           "https://www.googleapis.com/auth/youtube.readonly"]
-playlist = "PLRDuNIkwpnsfJaOX5Bq3jrPtP2WfP_vBl"
+playlist = "PLRDuNIkwpnscZa3s5InD68MpZvpRmFyG8"
 lastAuth = datetime.datetime.min
 
 def get_authenticated_service(lastAuth):
@@ -104,19 +104,20 @@ def remove_from_playlist():
     youtube = get_authenticated_service(lastAuth)
 
     request = youtube.playlistItems().list(
-        part = "snippet,contentDetails",
-        playlistId = playlist,
-        maxResults = 50
+        part="snippet,contentDetails",
+        maxResults=50,
+        playlistId=playlist
     )
     response = request.execute()
     utils.logPrint(response, 0)
 
     playlist_items = []
+    playlist_items += response["items"]
     utils.logPrint("Getting previous days content", 0)
-    while len(playlist_items) <= len(response["items"]):
-        playlist_items += response["items"]
-        request = youtube.playlistItems().list_next(request, response)
-    utils.logPrint(playlist_items, 0)
+    # while len(playlist_items) <= len(response["items"]):
+        # playlist_items += response["items"]
+        # request = youtube.playlistItems().list_next(request, response)
+    # utils.logPrint(playlist_items, 0)
 
     for t in playlist_items:
         try:
@@ -124,6 +125,8 @@ def remove_from_playlist():
             youtube.playlistItems().delete(
                 id = t["id"]
             ).execute()
+        except googleapiclient.errors.RefreshError:
+            utils.logPrint("Refresh error, figure this out.", 4)
         except:
             utils.logPrint(sys.exc_info()[0], 2)
 
