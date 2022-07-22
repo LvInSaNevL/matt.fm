@@ -57,7 +57,7 @@ def get_authenticated_service(lastAuth):
                                                     client_secret = youtubeAuth['installed']['client_secret']
                                                     )
     else: 
-        credFlow = flow.run_local_server(port=0)
+        credFlow = flow.run_console()
         with open('refresh.token', 'w+') as f:
             credToken = credFlow
             f.write(credFlow._refresh_token)
