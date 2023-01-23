@@ -25,8 +25,6 @@ colors = {
 def prettyPrint(color, text):
     print(colors[color] + text + colors['ENDC'])
 
-
-
 badness = ("log     ",
            "minor   ",
            "moderate",

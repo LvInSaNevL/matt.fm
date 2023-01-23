@@ -1,7 +1,7 @@
 # matt.fm
 A simple tool to find new and hidden music and add it to a [YouTube playlist](https://music.youtube.com/playlist?list=PLRDuNIkwpnsfJaOX5Bq3jrPtP2WfP_vBl)!
 
-Matt.fm uses the following reddit sources to find music, although they are handily combined into a [Multireddit](https://www.reddit.com/user/lv_insane_vl/m/music/), which has an even wider collection of music.
+Matt.fm uses the following reddit sources to find music, although they are handily combined into a [Multireddit](https://www.reddit.com/user/matt-fm/m/music/), which has an even wider collection of music.
     
 - [r/HeadBangToThis](https://www.reddit.com/r/HeadBangToThis/)
 - [r/indiewok](https://www.reddit.com/r/indiewok/)
