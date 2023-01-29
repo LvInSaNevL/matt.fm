@@ -34,7 +34,7 @@ badness = ("log     ",
 # utils.logPrint("Hello, World!", 1, 'log.txt')
 def logPrint(message, severity, file='log.txt'):
     emptyLog = "[ {} ][ {} ]: {}"
-    logfile = open(file, 'a+')
+    logfile = open(file, 'a+', encoding='utf-8')
     message = "[ {} ][ {} ]: {} \n".format(badness[severity], datetime.datetime.now(), message)
     prettyPrint('WARNING', message)
     logfile.write(message)

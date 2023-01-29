@@ -18,7 +18,7 @@ import googleapiclient.discovery
 import googleapiclient.errors
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl",
           "https://www.googleapis.com/auth/youtube.readonly"]
-playlist = "PLRDuNIkwpnscZa3s5InD68MpZvpRmFyG8"
+playlist = "PLRDuNIkwpnsfJaOX5Bq3jrPtP2WfP_vBl"
 lastAuth = datetime.datetime.min
 
 def get_authenticated_service(lastAuth):
@@ -65,6 +65,10 @@ def get_authenticated_service(lastAuth):
     
     return googleapiclient.discovery.build(api_service_name, api_version, credentials=credToken)
 
+### <summary>
+# Adds a new video to the playlist
+# <param name=videoID> The YouTube video ID, usually provided by URL
+### </summary
 def add_to_playlist(videoID):
     utils.logPrint("Adding {0} to playlist".format(videoID), 0)
 
@@ -84,7 +88,7 @@ def add_to_playlist(videoID):
                 )
             )
         ).execute()
-        utils.logPrint(add_video_response, 0)
+        utils.logPrint(add_video_response['snippet']['title'], 0)
     except googleapiclient.errors.HttpError as err:
         if err.reason == "quotaExceeded":
             utils.logPrint("Quota limit exceded, terminating program.", 4)
@@ -95,10 +99,11 @@ def add_to_playlist(videoID):
         else:
             utils.logPrint("Unhandled exception while adding video: " + str(err), 4)
 
-
+### <summary>
+# Recursively removes all videos from the current playlist
+### </summary>
 def remove_from_playlist():
     utils.logPrint("Clearing out yesterdays music", 0)
-    toRemove = []
 
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     youtube = get_authenticated_service(lastAuth)
@@ -114,10 +119,10 @@ def remove_from_playlist():
     playlist_items = []
     playlist_items += response["items"]
     utils.logPrint("Getting previous days content", 0)
-    # while len(playlist_items) <= len(response["items"]):
-        # playlist_items += response["items"]
-        # request = youtube.playlistItems().list_next(request, response)
-    # utils.logPrint(playlist_items, 0)
+    while len(playlist_items) < len(response["items"]):
+        playlist_items += response["items"]
+        request = youtube.playlistItems().list_next(request, response)
+    utils.logPrint(playlist_items, 0)
 
     for t in playlist_items:
         try:
@@ -125,17 +130,23 @@ def remove_from_playlist():
             youtube.playlistItems().delete(
                 id = t["id"]
             ).execute()
-        except googleapiclient.errors.RefreshError:
-            utils.logPrint("Refresh error, figure this out.", 4)
+        except googleapiclient.errors.HttpError:
+            utils.logPrint("Usually a 404 error that can(?) be ignored", 3)
         except:
             utils.logPrint(sys.exc_info()[0], 2)
 
+### <summary>
+# Simple helper function to verify that the youtube video is available on YT Music
+# Also happens to provide the duration of the video which is handy
+# <param name=videoID> The YouTube video ID, usually provided by URL
+# <returns> Boolean value to tell if video is available
+### </summary>
 def check_video_exist(videoID):
     utils.logPrint("Checking if " + videoID + " exists", 0)
     try:
         headers = {'Accept-Encoding': 'identity'}
         url = "https://yt.lemnoslife.com/videos?part=status,contentDetails,music&id=" + videoID
-        request = requests.get(url=url, headers=headers)
+        request = requests.get(url=url)
         data = json.loads(request.text)
         duration = int(data['items'][0]['contentDetails']['duration']) / 60
         if (data['items'][0]['music']['available']) and (duration < 10):
@@ -144,3 +155,4 @@ def check_video_exist(videoID):
             return False
     except:
         return False
+    
