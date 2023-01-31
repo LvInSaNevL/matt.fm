@@ -113,15 +113,23 @@ def remove_from_playlist():
         maxResults=50,
         playlistId=playlist
     )
+
     response = request.execute()
     utils.logPrint(response, 0)
 
+    currentLen = response["pageInfo"]["totalResults"]
+
     playlist_items = []
-    playlist_items += response["items"]
     utils.logPrint("Getting previous days content", 0)
-    while len(playlist_items) < len(response["items"]):
-        playlist_items += response["items"]
-        request = youtube.playlistItems().list_next(request, response)
+    while len(playlist_items) < response["pageInfo"]['totalResults']:
+        for p in response['items']:
+            playlist_items.append(p)
+        request = youtube.playlistItems().list(
+            part="snippet,contentDetails",
+            maxResults=50,
+            playlistId=playlist,
+            pageToken=response["nextPageToken"]
+        )
     utils.logPrint(playlist_items, 0)
 
     for t in playlist_items:
