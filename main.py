@@ -14,13 +14,12 @@ from urllib.parse import urlparse
 def main():
     youtube.remove_from_playlist()
     newContent = reddit.getPosts()
-    # print(len(newContent))
     
-    # # You need this sleep for YouTube to catch up, it could probably be reduced but this is safe
-    # time.sleep(5)
+    # You need this sleep for YouTube to catch up, it could probably be reduced but this is safe
+    time.sleep(5)
     
-    # # for c in newContent:
-    # #     youtube.add_to_playlist(c)
+    for c in newContent:
+        youtube.add_to_playlist(c)
 
 
 # Actual start

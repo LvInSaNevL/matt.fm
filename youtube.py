@@ -108,6 +108,7 @@ def remove_from_playlist():
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     youtube = get_authenticated_service(lastAuth)
 
+    # Makes the first round of API calls
     request = youtube.playlistItems().list(
         part="snippet,contentDetails",
         maxResults=50,
@@ -118,20 +119,23 @@ def remove_from_playlist():
     utils.logPrint(response, 0)
 
     currentLen = response["pageInfo"]["totalResults"]
-
-    playlist_items = []
+    playlist_items = []    
+    for p in response['items']:
+        playlist_items.append(p)
+        
     utils.logPrint("Getting previous days content", 0)
     while len(playlist_items) < response["pageInfo"]['totalResults']:
-        for p in response['items']:
-            playlist_items.append(p)
         request = youtube.playlistItems().list(
             part="snippet,contentDetails",
             maxResults=50,
             playlistId=playlist,
             pageToken=response["nextPageToken"]
-        )
+        )        
+        response = request.execute()
+        for p in response['items']:
+            playlist_items.append(p)
     utils.logPrint(playlist_items, 0)
-
+    
     for t in playlist_items:
         try:
             utils.logPrint("Removing " + t["id"], 0)
