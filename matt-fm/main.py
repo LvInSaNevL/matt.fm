@@ -11,7 +11,7 @@ import praw
 import json
 from urllib.parse import urlparse
 
-def main():
+def main():    
     youtube.remove_from_playlist()
     newContent = reddit.getPosts()
     

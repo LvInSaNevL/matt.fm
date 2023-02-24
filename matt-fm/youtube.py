@@ -155,16 +155,25 @@ def remove_from_playlist():
 ### </summary>
 def check_video_exist(videoID):
     utils.logPrint("Checking if " + videoID + " exists", 0)
-    try:
+    try: 
+        # Request to get the data
+        # Free API access that doesn't effect our quota so this is nice to use
         headers = {'Accept-Encoding': 'identity'}
-        url = "https://yt.lemnoslife.com/videos?part=status,contentDetails,music&id=" + videoID
+        url = "https://yt.lemnoslife.com/videos?part=id,status,contentDetails,music,musics&id=" + videoID
         request = requests.get(url=url)
         data = json.loads(request.text)
-        duration = int(data['items'][0]['contentDetails']['duration']) / 60
-        if (data['items'][0]['music']['available']) and (duration < 10):
+        
+        # Checks to make sure song meets criteria
+        checks = ((int(data['items'][0]['contentDetails']['duration']) / 60) < 10,
+                    data['items'][0]['music']['available'],
+                    "[free]" not in data['items'][0]['musics'][0]['song']['title'].lower(),
+                    "type beat" not in data['items'][0]['musics'][0]['song']['title'].lower()
+                )
+                
+        if all(checks):
             return True
         else:
             return False
-    except:
+    except: 
         return False
     
