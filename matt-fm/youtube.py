@@ -3,6 +3,7 @@ from http import HTTPStatus
 import sys
 from pydoc import cli
 import datetime
+import isodate
 import re
 from urllib import response
 from urllib.error import HTTPError
@@ -16,10 +17,14 @@ import google_auth_oauthlib
 import google.oauth2
 import googleapiclient.discovery
 import googleapiclient.errors
+import datatypes
+import database 
+
+# Variables and such
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl",
           "https://www.googleapis.com/auth/youtube.readonly"]
-playlist = "PLRDuNIkwpnsfJaOX5Bq3jrPtP2WfP_vBl"
-lastAuth = datetime.datetime.min
+playlist = "PLRDuNIkwpnscZa3s5InD68MpZvpRmFyG8"
+lastAuth = datetime.datetime.min       
 
 def get_authenticated_service(lastAuth):
     utils.logPrint("Authenticating service access and refresh token", 0)
@@ -155,25 +160,54 @@ def remove_from_playlist():
 ### </summary>
 def check_video_exist(videoID):
     utils.logPrint("Checking if " + videoID + " exists", 0)
-    try: 
-        # Request to get the data
-        # Free API access that doesn't effect our quota so this is nice to use
-        headers = {'Accept-Encoding': 'identity'}
-        url = "https://yt.lemnoslife.com/videos?part=id,status,contentDetails,music,musics&id=" + videoID
-        request = requests.get(url=url)
-        data = json.loads(request.text)
-        
-        # Checks to make sure song meets criteria
-        checks = ((int(data['items'][0]['contentDetails']['duration']) / 60) < 10,
-                    data['items'][0]['music']['available'],
-                    "[free]" not in data['items'][0]['musics'][0]['song']['title'].lower(),
-                    "type beat" not in data['items'][0]['musics'][0]['song']['title'].lower()
-                )
-                
-        if all(checks):
-            return True
-        else:
-            return False
-    except: 
-        return False
+    # Request to check if it is available on YT Music since there is no official way
+    # Free API access that doesn't effect our quota so this is nice to use
+    headers = {'Accept-Encoding': 'identity'}
+    url = "https://yt.lemnoslife.com/videos?part=music&id=" + videoID
+    request = requests.get(url=url)
+    isMusic = json.loads(request.text)
+    data = get_video_info(videoID)
     
+    # Checks to make sure song meets criteria
+    checks = (isMusic['items'][0]['music']['available'],
+              data.duration < 600,
+              "[free]" not in data.title.lower(),
+              "type beat" not in data.title.lower()
+            )
+            
+    if all(checks):
+        database.todaySongs.append(data)
+        return True
+    else:
+        return False
+
+### <summary>
+# Gets all the info available for the song, so we can document it
+# <param name=videoID> The YouTube video ID, usually provided by URL
+# <returns> datatypes.Song()
+### </summary>
+def get_video_info(videoID):
+    utils.logPrint("Clearing out yesterdays music", 0)
+
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+    youtube = get_authenticated_service(lastAuth)
+
+    # Makes the first round of API calls
+    request = youtube.videos().list(
+        part="snippet,topicDetails,contentDetails,statistics",
+        id=videoID
+    )
+    response = request.execute()
+    
+    rawData = response["items"][0]
+    data = datatypes.Song(
+        yt_id=rawData["id"],
+        published=rawData["snippet"]["publishedAt"],
+        genre=rawData["topicDetails"]["topicCategories"][0],
+        title=rawData["snippet"]["title"],
+        description=rawData["snippet"]["description"],
+        thumbnail=rawData["snippet"]["thumbnails"]["standard"]["url"],
+        viewcount=rawData["statistics"]["viewCount"],
+        duration= isodate.parse_duration(rawData["contentDetails"]["duration"]).seconds
+    )
+    return data
