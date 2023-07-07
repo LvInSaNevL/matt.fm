@@ -23,7 +23,7 @@ import database
 # Variables and such
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl",
           "https://www.googleapis.com/auth/youtube.readonly"]
-playlist = "PLRDuNIkwpnscZa3s5InD68MpZvpRmFyG8"
+playlist = "PLTYtECRlkGVXsXYiCkcISi_sGK6dDt-h3"
 lastAuth = datetime.datetime.min       
 
 def get_authenticated_service(lastAuth):
