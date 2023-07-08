@@ -167,7 +167,7 @@ def check_video_exist(videoID):
     request = requests.get(url=url)
     isMusic = json.loads(request.text)
     data = get_video_info(videoID)
-    
+    print(data)
     # Checks to make sure song meets criteria
     checks = (isMusic['items'][0]['music']['available'],
               data.duration < 600,
