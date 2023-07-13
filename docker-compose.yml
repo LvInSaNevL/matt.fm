@@ -1,0 +1,43 @@
+version: '3'
+networks:
+  mfmnet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.19.0.0/24"
+          gateway: "172.19.0.1"
+     
+
+services:
+  postgres:
+    container_name: mattfm_sql
+    image: postgres
+    hostname: postgres
+    networks:
+      mfmnet:
+        ipv4_address: 172.19.0.4
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./database:/matt-fm
+      - ./database/matt-fm.sql:/docker-entrypoint-initdb.d/matt-fm.sql
+    restart: unless-stopped
+
+  pgadmin:
+    container_name: mattfm_sql_admin
+    image: dpage/pgadmin4
+    depends_on:
+      - postgres
+    networks:
+      mfmnet:
+        ipv4_address: 172.19.0.5
+    ports:
+      - "8080:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: pgadmin4@pgadmin.org
+      PGADMIN_DEFAULT_PASSWORD: admin
+    restart: unless-stopped

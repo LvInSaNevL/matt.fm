@@ -1,0 +1,3 @@
+ls
+ls home
+exit
