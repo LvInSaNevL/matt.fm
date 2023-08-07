@@ -13,7 +13,7 @@ services:
   postgres:
     container_name: mattfm_sql
     image: postgres
-    hostname: postgres
+    hostname: mattfm_sql
     networks:
       mfmnet:
         ipv4_address: 172.19.0.4
@@ -32,6 +32,7 @@ services:
     image: dpage/pgadmin4
     depends_on:
       - postgres
+    hostname: mattfm_sql_admin
     networks:
       mfmnet:
         ipv4_address: 172.19.0.5
@@ -41,3 +42,16 @@ services:
       PGADMIN_DEFAULT_EMAIL: pgadmin4@pgadmin.org
       PGADMIN_DEFAULT_PASSWORD: admin
     restart: unless-stopped
+
+  # python:
+  #   container_name: mattfm_dj
+  #   image: python
+  #   depends_on:
+  #     - postgres
+  #   hostname: mattfm_dj
+  #   networks:
+  #     mfmnet:
+  #       ipv4_address: 172.19.0.3
+  #   volumes:
+  #     - ./matt-fm:/app
+  #   command: bash -c "pip install --upgrade pip && pip install -r /matt.fm/requirements.txt && python3 /matt.fm/main.py"

@@ -1,10 +1,10 @@
 {
     "reddit": {
-        "client_id": "your_client_id",
-        "client_secret": "your_client_secret",
-        "user_agent": "An experimental bot to automate meme compilations, by Lv_InSaNe_vL",
-        "username": "your_reddit_username",
-        "password": "your_reddit_password"
+        "client_id": "qBJK3JdbDsAVHZXsRtVDUg",
+        "client_secret": "sGervpbQ00WBPagdASyQlX-KmlAXXg",
+        "user_agent": "The best collection of indie music, by Lv_InSaNe_vL",
+        "username": "matt-fm",
+        "password": "ShinyVoice87!"
     },
     "youtube": {
         "installed":{
