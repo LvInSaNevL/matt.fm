@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from urllib.parse import urlparse
 
 @dataclass
@@ -25,3 +26,8 @@ class Post:
     published: str
     title: str
     permalink: str
+
+@dataclass
+class mattfm_item:
+    song: Song
+    post: Post

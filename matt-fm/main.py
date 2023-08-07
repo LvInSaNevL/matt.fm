@@ -2,7 +2,7 @@
 import utils
 import youtube
 import reddit
-import database
+import db_hook
 # dep imports
 import time
 from ast import And
@@ -15,7 +15,7 @@ def main():
     youtube.remove_from_playlist()
     
     # You need this sleep for YouTube to catch up, it could probably be reduced but this is safe
-    data = database.todaySongs
+    data = db_hook.todaySongs
     time.sleep(5)
     
     for c in newContent:

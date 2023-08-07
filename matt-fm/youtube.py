@@ -18,7 +18,7 @@ import google.oauth2
 import googleapiclient.discovery
 import googleapiclient.errors
 import datatypes
-import database 
+import db_hook 
 
 # Variables and such
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl",
@@ -27,7 +27,7 @@ playlist = "PLTYtECRlkGVXsXYiCkcISi_sGK6dDt-h3"
 lastAuth = datetime.datetime.min       
 
 def get_authenticated_service(lastAuth):
-    utils.logPrint("Authenticating service access and refresh token", 0)
+    utils.logPrint("Authenticating YouTube service access and refresh token", 0)
     nowAuth = datetime.datetime.now()
     authDiff = nowAuth - lastAuth
     if (authDiff.total_seconds() * 1000 < 250):
@@ -171,15 +171,15 @@ def check_video_exist(videoID):
     # Checks to make sure song meets criteria
     checks = (isMusic['items'][0]['music']['available'],
               data.duration < 600,
+              data.duration > 60,
               "[free]" not in data.title.lower(),
               "type beat" not in data.title.lower()
             )
             
     if all(checks):
-        database.todaySongs.append(data)
-        return True
+        return data
     else:
-        return False
+        return None
 
 ### <summary>
 # Gets all the info available for the song, so we can document it
@@ -206,7 +206,7 @@ def get_video_info(videoID):
         genre=rawData["topicDetails"]["topicCategories"][0],
         title=rawData["snippet"]["title"],
         description=rawData["snippet"]["description"],
-        thumbnail=rawData["snippet"]["thumbnails"]["standard"]["url"],
+        thumbnail=rawData["snippet"]["thumbnails"]["default"]["url"],
         viewcount=rawData["statistics"]["viewCount"],
         duration= isodate.parse_duration(rawData["contentDetails"]["duration"]).seconds
     )
