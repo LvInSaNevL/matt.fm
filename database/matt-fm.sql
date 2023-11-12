@@ -1,10 +1,6 @@
 CREATE DATABASE mattfm ENCODING 'UTF8';
 
-<<<<<<< HEAD
-\c mattfm;
-=======
 \c mattfm
->>>>>>> main
 
 CREATE SCHEMA reddit;
 CREATE SCHEMA youtube;

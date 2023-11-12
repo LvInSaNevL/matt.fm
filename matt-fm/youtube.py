@@ -48,6 +48,7 @@ def get_authenticated_service(lastAuth):
                 youtubeAuth = json.loads(j.read())
             params = {
                 "grant_type": "refresh_token",
+                "access_type": 'offline',
                 "client_id": youtubeAuth['installed']['client_id'],
                 "client_secret": youtubeAuth['installed']['client_secret'],
                 "refresh_token": rawToken
@@ -173,7 +174,8 @@ def check_video_exist(videoID):
               data.duration < 600,
               data.duration > 60,
               "[free]" not in data.title.lower(),
-              "type beat" not in data.title.lower()
+              "type beat" not in data.title.lower(),
+              "ost" not in data.title.lower()
             )
             
     if all(checks):

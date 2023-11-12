@@ -45,32 +45,32 @@ def getPosts(count):
         if len(db_hook.todaySongs) < count:
             try: 
                 result = re.search(regex, i.url)
-                temp = result.group()
                 yt_data = youtube.check_video_exist(result.group())
                 checks = (i.url not in youtubeURLs,
                             result.group() not in contnentLinks,
                             youtube.check_video_exist(result.group())                       
                         )
+                
+                if all(checks):
+                    # You need to do this to get the subreddit I guess
+                    submission = authenticate().submission(id=i.id)
+                    # Creating the dataset for this song
+                    data = datatypes.mattfm_item(
+                        song=yt_data,
+                        post=datatypes.Post(
+                            subreddit=str(submission.subreddit),
+                            published=i.created_utc,
+                            title=i.title,
+                            permalink=i.url
+                        )
+                    )
+                    db_hook.todaySongs.append(data)
+                    contnentLinks.append(data.song.yt_id)
+                    totalSongs = totalSongs + 1
+                    print("We have {} songs now", totalSongs)
+                else:
+                    continue
             except Exception:
                 pass            
-
-            if all(checks):
-                # You need to do this to get the subreddit I guess
-                submission = authenticate().submission(id=i.id)
-                # Creating the dataset for this song
-                data = datatypes.mattfm_item(
-                    song=yt_data,
-                    post=datatypes.Post(
-                        subreddit=str(submission.subreddit),
-                        published=i.created_utc,
-                        title=i.title,
-                        permalink=i.url
-                    )
-                )
-                db_hook.todaySongs.append(data)
-                totalSongs = totalSongs + 1
-                print("We have {} songs now", totalSongs)
-            else:
-                continue
-            
+                    
     return contnentLinks
