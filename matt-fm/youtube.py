@@ -200,6 +200,7 @@ def get_video_info(videoID):
     response = request.execute()
     
     rawData = response["items"][0]
+
     data = datatypes.Song(
         yt_id=rawData["id"],
         published=rawData["snippet"]["publishedAt"],
