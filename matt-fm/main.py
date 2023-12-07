@@ -5,6 +5,7 @@ import reddit
 import db_hook
 # dep imports
 import time
+import os
 from ast import And
 from pydoc import cli
 from urllib.parse import urlparse
@@ -21,6 +22,8 @@ def main():
     for c in data:
         print(c)
         youtube.add_to_playlist(c.song.yt_id)
+
+    db_hook.updateDB()
 
 
 # Actual start
