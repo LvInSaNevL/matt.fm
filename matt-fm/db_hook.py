@@ -1,6 +1,7 @@
 # File imports
 from urllib.parse import SplitResult
 import datatypes
+import utils
 # dep imports
 import psycopg2
 import random
@@ -10,10 +11,11 @@ from datetime import datetime
 todaySongs = []
 
 def connection():
+    auth = utils.readAuth('db')
     connector = psycopg2.connect(
         database="mattfm",
-        user="postgres",
-        password="postgres",
+        user=auth["username"],
+        password=auth["password"],
         host="172.19.0.4",
         port="5432"
     )
@@ -41,9 +43,9 @@ def addSong(data):
                         SELECT * FROM youtube.artists WHERE youtube_id = %s
                     )
                     INSERT INTO youtube.song (
-                        yt_id, published, genre, title, artist, description, viewcount, duration, thumbnail
+                        yt_id, published, dates_posted,genre, title, artist, description, viewcount, duration, thumbnail
                     )
-                    SELECT %s, %s, %s, %s, ins_artist.youtube_id, %s, %s, %s, %s FROM ins_artist;
+                    SELECT %s, %s, %s, %s, %s, ins_artist.youtube_id, %s, %s, %s, %s FROM ins_artist;
                 """
                 # Formatting the Wikipedia URLs
                 regex = re.findall(r'^https?\:\/\/([\w\.]+)wikipedia.org\/wiki\/([\w]+\_?)', data.genre)
@@ -54,6 +56,7 @@ def addSong(data):
                     data.artist.yt_id, 
                     data.yt_id, 
                     data.published, 
+                    datetime.today().strftime('%Y-%m-%d'),
                     clean_genre, 
                     data.title, 
                     data.description, 

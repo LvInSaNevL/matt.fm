@@ -26,6 +26,8 @@ class Post:
     published: str
     title: str
     permalink: str
+    ups: int
+    downs: int
 
 @dataclass
 class mattfm_item:

@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 
 def main():    
     reddit.authenticate()
-    newContent = reddit.getPosts(100)
+    reddit.getPosts(10)
     youtube.remove_from_playlist()
     
     # You need this sleep for YouTube to catch up, it could probably be reduced but this is safe

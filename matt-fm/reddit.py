@@ -4,11 +4,9 @@ import youtube
 import db_hook
 import datatypes
 # dep imports
-import json
 import time
 import praw
 import re
-import inspect
 
 youtubeURLs = ["www.youtube.com",   
                "youtube.com",
@@ -23,18 +21,15 @@ def authenticate():
     last_call = time.time()
 
     utils.logPrint("Authenticating Reddit service access and refresh token", 0)
-    with open("auth.json") as jsonfile:
-        auth = json.load(jsonfile)
-
-    redditAuth = praw.Reddit(client_id=auth['reddit']['client_id'],
-                        client_secret=auth['reddit']['client_secret'],
-                        user_agent=auth['reddit']['user_agent'],
-                        username=auth['reddit']['username'],                     
-                        password=auth['reddit']['password'])
+    auth = utils.readAuth('reddit')
+    redditAuth = praw.Reddit(client_id=auth['client_id'],
+                        client_secret=auth['client_secret'],
+                        user_agent=auth['user_agent'],
+                        username=auth['username'],                     
+                        password=auth['password'])
     
     return redditAuth
 
-totalSongs = 0
 def getPosts(count):    
     global totalSongs
     utils.logPrint("Retreiving music", 0)
@@ -45,32 +40,34 @@ def getPosts(count):
         if len(db_hook.todaySongs) < count:
             try: 
                 result = re.search(regex, i.url)
-                yt_data = youtube.check_video_exist(result.group())
-                checks = (i.url not in youtubeURLs,
-                            result.group() not in contnentLinks,
-                            youtube.check_video_exist(result.group())                       
-                        )
-                
-                if all(checks):
-                    # You need to do this to get the subreddit I guess
-                    submission = authenticate().submission(id=i.id)
-                    # Creating the dataset for this song
-                    data = datatypes.mattfm_item(
-                        song=yt_data,
-                        post=datatypes.Post(
-                            subreddit=str(submission.subreddit),
-                            published=i.created_utc,
-                            title=i.title,
-                            permalink=i.url
-                        )
-                    )
-                    db_hook.todaySongs.append(data)
-                    contnentLinks.append(data.song.yt_id)
-                    totalSongs = totalSongs + 1
-                    print("We have {} songs now", totalSongs)
-                else:
+                if result.group() in contnentLinks:
                     continue
-            except Exception:
+                             
+                # You need to do this to get the subreddit I guess
+                submission = authenticate().submission(id=i.id)
+
+                # Just an extra check to get rid of anything not available on YT Music
+                ytData = youtube.get_video_info(result.group())
+                if ytData is None: continue
+
+                # Creating the dataset for this song
+                data = datatypes.mattfm_item(
+                    song=ytData,
+                    post=datatypes.Post(
+                        subreddit=str(submission.subreddit),
+                        published=i.created_utc,
+                        title=i.title,
+                        permalink=i.id,
+                        ups=i.ups,
+                        downs=i.downs
+                    )
+                )
+                db_hook.todaySongs.append(data)
+                contnentLinks.append(data.song.yt_id)
+                print("We have {} songs now", len(db_hook.todaySongs))
+                
+            except Exception as e:
+                print(e)
                 pass            
                     
     return contnentLinks
