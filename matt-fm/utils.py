@@ -8,8 +8,6 @@ def array_from_json_file(path):
 		array = json.loads(f)
 	return array
 
-
-
 colors = {
     'HEADER': '\033[95m',
     'OKBLUE': '\033[94m',
@@ -38,3 +36,8 @@ def logPrint(message, severity, file='log.txt'):
     message = "[ {} ][ {} ]: {} \n".format(badness[severity], datetime.datetime.now(), message)
     prettyPrint('WARNING', message)
     logfile.write(message)
+
+def readAuth(target):
+    with open("auth.json") as jsonfile:
+        auth = json.load(jsonfile)
+    return auth[target]

@@ -163,25 +163,18 @@ def check_video_exist(videoID):
     utils.logPrint("Checking if " + videoID + " exists", 0)
     # Request to check if it is available on YT Music since there is no official way
     # Free API access that doesn't effect our quota so this is nice to use
-    headers = {'Accept-Encoding': 'identity'}
-    url = "https://yt.lemnoslife.com/videos?part=music&id=" + videoID
-    request = requests.get(url=url)
-    isMusic = json.loads(request.text)
-    data = get_video_info(videoID)
-    print(data)
-    # Checks to make sure song meets criteria
-    checks = (isMusic['items'][0]['music']['available'],
-              data.duration < 600,
-              data.duration > 60,
-              "[free]" not in data.title.lower(),
-              "type beat" not in data.title.lower(),
-              "ost" not in data.title.lower()
-            )
-            
-    if all(checks):
-        return data
-    else:
-        return None
+    try:
+        headers = {'Accept-Encoding': 'identity'}
+        url = "https://yt.lemnoslife.com/videos?part=music&id=" + videoID
+        request = requests.get(url=url)
+        isMusic = json.loads(request.text)      
+        if isMusic['items'][0]['music']['available']:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(e)
+        pass  
 
 ### <summary>
 # Gets all the info available for the song, so we can document it
@@ -189,8 +182,14 @@ def check_video_exist(videoID):
 # <returns> datatypes.Song()
 ### </summary>
 def get_video_info(videoID):
-    utils.logPrint("Clearing out yesterdays music", 0)
+    utils.logPrint("Getting data for " + videoID, 0)
 
+    # Making sure the song is actually available before hitting the YT API
+    isAvailable = check_video_exist(videoID)
+    if not isAvailable:
+        return None
+
+    # Getting the data from the YT API
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     youtube = get_authenticated_service(lastAuth)
 
@@ -202,6 +201,15 @@ def get_video_info(videoID):
     response = request.execute()
     
     rawData = response["items"][0]
+
+    # Final round of checks to make sure song meets criteria
+    checks = (60 < isodate.parse_duration(rawData["contentDetails"]["duration"]).seconds < 600,
+              "[free]" not in rawData["snippet"]["title"],
+              "type beat" not in rawData["snippet"]["title"],
+              "ost" not in rawData["snippet"]["title"]
+            )
+    if not all(checks):
+        return None    
 
     data = datatypes.Song(
         yt_id=rawData["id"],

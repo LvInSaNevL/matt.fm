@@ -38,6 +38,7 @@ CREATE TABLE youtube.song (
   mattfm_id varchar PRIMARY KEY,
   yt_id varchar(66) UNIQUE NOT NULL,
   published date,
+  dates_posted date[],
   genre varchar(64),
   title varchar(100) NOT NULL,
   artist varchar(100) REFERENCES youtube.artists (name),
