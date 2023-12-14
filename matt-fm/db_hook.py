@@ -1,11 +1,11 @@
 # File imports
 from urllib.parse import SplitResult
-import datatypes
+import db_queries
 import utils
 # dep imports
 import psycopg2
-import random
 import re
+import uuid
 from datetime import datetime
 
 todaySongs = []
@@ -21,109 +21,93 @@ def connection():
     )
     return connector
 
+def dbInsert(query, values):
+    dbAuth = connection()
+    with dbAuth:
+        with dbAuth.cursor() as dbAuth_cursor:
+            try: 
+                dbAuth_cursor.execute(query, values)
+                dbAuth.commit()
+            except (Exception, psycopg2.DatabaseError) as error:
+                print(error) 
+        dbAuth_cursor.close()
+                
 def addArtist(data):
-    dbAuth = connection()
-    with dbAuth:
-        with dbAuth.cursor() as dbAuth_cursor:
-            try:
-                dbAuth_cursor.execute("""
-                    INSERT INTO youtube.artists (name, youtube_id) 
-                    VALUES ('{0}', '{1}');
-                """.format(data.name, data.yt_id))
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)
+    values = {
+        'name': data.name,
+        'youtube_id': data.yt_id
+    }
+    dbInsert(db_queries.addArtist, values)
 
+# This gets its own db query because we need return values
 def addSong(data):
+    query = "SELECT EXISTS(SELECT 1 FROM youtube.song WHERE yt_id = '%s');"
+    value = data.yt_id
     dbAuth = connection()
     with dbAuth:
         with dbAuth.cursor() as dbAuth_cursor:
             try:
-                insert_query = """
-                    WITH ins_artist AS (
-                        SELECT * FROM youtube.artists WHERE youtube_id = %s
-                    )
-                    INSERT INTO youtube.song (
-                        yt_id, published, dates_posted,genre, title, artist, description, viewcount, duration, thumbnail
-                    )
-                    SELECT %s, %s, %s, %s, %s, ins_artist.youtube_id, %s, %s, %s, %s FROM ins_artist;
-                """
-                # Formatting the Wikipedia URLs
-                regex = re.findall(r'^https?\:\/\/([\w\.]+)wikipedia.org\/wiki\/([\w]+\_?)', data.genre)
-                clean_genre = regex[-1]
-
-                # Using the execute method with a tuple of values
-                values = (
-                    data.artist.yt_id, 
-                    data.yt_id, 
-                    data.published, 
-                    datetime.today().strftime('%Y-%m-%d'),
-                    clean_genre, 
-                    data.title, 
-                    data.description, 
-                    data.viewcount, 
-                    data.duration, 
-                    data.thumbnail
-                )
-
-                dbAuth_cursor.execute(insert_query, values)
-                dbAuth.commit()
+                dbAuth_cursor.execute(query, value)
+                doesExist = dbAuth_cursor.fetchone()
+                if doesExist:
+                    updateSong(data)
+                else:
+                    addNewSong(data)
             except (Exception, psycopg2.DatabaseError) as error:
-                print(error)  
+                print(error) 
 
+def updateSong(data):
+    values = (
+        datetime.today().strftime('%Y-%m-%d'),
+        data.yt_id
+    )
+    dbInsert(db_queries.updateSong, values)
+
+def addNewSong(data):    
+    print("adding song " + data.title)
+    # Formatting the Wikipedia URLs
+    regex = re.findall(r'^https?\:\/\/([\w\.]+)wikipedia.org\/wiki\/([\w]+\_?)', data.genre)
+    clean_genre = regex[-1]
+
+    values = {
+        'mattfm_id': utils.genUUID(),
+        'yt_id': data.yt_id,
+        'published': data.published,
+        'dates_posted': (datetime.today().strftime('%Y-%m-%d'),),
+        'genre': clean_genre,
+        'title': data.title,
+        'artist': data.artist.yt_id,
+        'description': data.description,
+        'viewcount': data.viewcount,
+        'duration': data.duration,
+        'thumbnail': data.thumbnail
+    }
+    dbInsert(db_queries.addSong, values)
+ 
 def addRedditPost(data):
-    dbAuth = connection()
-    with dbAuth:
-        with dbAuth.cursor() as dbAuth_cursor:
-            try:
-                insert_query = """
-                    INSERT INTO reddit.post (
-                        subreddit, date_posted, title, permalink, upvotes, downvotes
-                    )
-                    SELECT %s, %s, %s, %s, %s, %s;
-                """
-
-                values = (
-                    data.subreddit,
-                    datetime.fromtimestamp(data.published).strftime('%Y-%m-%d'),
-                    data.title,
-                    data.permalink,
-                    data.upvotes,
-                    data.downvotes
-                )
-                dbAuth_cursor.execute(insert_query, values)
-                dbAuth.commit()
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)
+    values = {
+                'subreddit': data.subreddit,
+                'date_posted': datetime.utcfromtimestamp(data.published).strftime('%Y-%m-%d'),
+                'title': data.title,
+                'permalink': data.permalink,
+                'upvotes': data.ups,
+                'downvotes': data.downs
+            }
+    dbInsert(db_queries.addPost, values)
 
 def createMattFMItem(data):
-    dbAuth = connection()
-    with dbAuth:
-        with dbAuth.cursor() as dbAuth_cursor:
-            try:
-                insert_query = """
-                    INSERT INTO mattfm.playlist_item(
-                        date, yt_id, playlist_id, r_post
-                    )
-                    SELECT %s, %s, %s, %s;
-                """
-
-                values = (
-                    datetime.today().strftime('%Y-%m-%d'),
-                    data.song.yt_id,
-                    data.playlist_id,
-                    data.post.permalink
-                )
-
-                dbAuth_cursor.execute(insert_query, values)
-                dbAuth.commit()
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)      
+    values = {
+                'date': datetime.today().strftime('%Y-%m-%d'),
+                'yt_id': data.song.yt_id,
+                'playlist_id': utils.genUUID(),
+                'r_post': data.post.permalink
+            }
+    dbInsert(db_queries.mattfmItem, values)
 
 def updateDB():
-    dbAuth = connection()
     for i in todaySongs:
         print("Adding {0} to the database".format(i.song.title))
         addArtist(i.song.artist)
         addSong(i.song)
         addRedditPost(i.post)
-        createMattFMItem(i)
+        # createMattFMItem(i)

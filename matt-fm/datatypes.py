@@ -15,7 +15,7 @@ class Song:
     genre: str
     title: str
     description: str
-    # artist: Artist (not implemented yet)
+    artist: Artist
     thumbnail: str
     viewcount: int
     duration: int
