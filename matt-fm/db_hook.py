@@ -41,15 +41,15 @@ def addArtist(data):
 
 # This gets its own db query because we need return values
 def addSong(data):
-    query = "SELECT EXISTS(SELECT 1 FROM youtube.song WHERE yt_id = '%s');"
-    value = data.yt_id
+    query = "SELECT EXISTS(SELECT 1 FROM youtube.song WHERE yt_id = %(yt_id)s);"
+    value = {'yt_id': data.yt_id}
     dbAuth = connection()
     with dbAuth:
         with dbAuth.cursor() as dbAuth_cursor:
             try:
                 dbAuth_cursor.execute(query, value)
                 doesExist = dbAuth_cursor.fetchone()
-                if doesExist:
+                if doesExist[0]:
                     updateSong(data)
                 else:
                     addNewSong(data)
@@ -57,10 +57,7 @@ def addSong(data):
                 print(error) 
 
 def updateSong(data):
-    values = (
-        datetime.today().strftime('%Y-%m-%d'),
-        data.yt_id
-    )
+    values = { 'yt_id': data.yt_id }
     dbInsert(db_queries.updateSong, values)
 
 def addNewSong(data):    
@@ -73,7 +70,7 @@ def addNewSong(data):
         'mattfm_id': utils.genUUID(),
         'yt_id': data.yt_id,
         'published': data.published,
-        'dates_posted': (datetime.today().strftime('%Y-%m-%d'),),
+        'dates_posted': datetime.today().strftime('%Y-%m-%d'),
         'genre': clean_genre,
         'title': data.title,
         'artist': data.artist.yt_id,
@@ -98,8 +95,8 @@ def addRedditPost(data):
 def createMattFMItem(data):
     values = {
                 'date': datetime.today().strftime('%Y-%m-%d'),
-                'yt_id': data.song.yt_id,
-                'playlist_id': utils.genUUID(),
+                'mattfm_id': utils.genUUID(),
+                'playlist_id': data.song.yt_id,
                 'r_post': data.post.permalink
             }
     dbInsert(db_queries.mattfmItem, values)
@@ -110,4 +107,4 @@ def updateDB():
         addArtist(i.song.artist)
         addSong(i.song)
         addRedditPost(i.post)
-        # createMattFMItem(i)
+        createMattFMItem(i)

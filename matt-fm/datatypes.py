@@ -10,7 +10,7 @@ class Artist:
 @dataclass
 class Song:
     yt_id: str
-    # mfm_id: str (not implemented yet)
+    mfm_id: str
     published: str
     genre: str
     title: str

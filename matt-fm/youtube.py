@@ -213,6 +213,7 @@ def get_video_info(videoID):
 
     data = datatypes.Song(
         yt_id=rawData["id"],
+        mfm_id=utils.genUUID(),
         published=rawData["snippet"]["publishedAt"],
         genre=rawData["topicDetails"]["topicCategories"][0],
         title=rawData["snippet"]["title"],
