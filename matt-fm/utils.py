@@ -1,5 +1,6 @@
 import json
 import datetime
+import uuid
 
 # data = utils.array_from_json_file("/foo/bar")
 def array_from_json_file(path):
@@ -41,3 +42,9 @@ def readAuth(target):
     with open("auth.json") as jsonfile:
         auth = json.load(jsonfile)
     return auth[target]
+
+def genUUID(length=8):
+    random = str(uuid.uuid4()) # Convert UUID format to a Python string.
+    random = random.upper() # Make all characters uppercase.
+    random = random.replace("-","")
+    return str(random[0:length])

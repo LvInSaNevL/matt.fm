@@ -10,12 +10,12 @@ class Artist:
 @dataclass
 class Song:
     yt_id: str
-    # mfm_id: str (not implemented yet)
+    mfm_id: str
     published: str
     genre: str
     title: str
     description: str
-    # artist: Artist (not implemented yet)
+    artist: Artist
     thumbnail: str
     viewcount: int
     duration: int

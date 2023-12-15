@@ -213,10 +213,15 @@ def get_video_info(videoID):
 
     data = datatypes.Song(
         yt_id=rawData["id"],
+        mfm_id=utils.genUUID(),
         published=rawData["snippet"]["publishedAt"],
         genre=rawData["topicDetails"]["topicCategories"][0],
         title=rawData["snippet"]["title"],
         description=rawData["snippet"]["description"],
+        artist=datatypes.Artist(
+            name=rawData["snippet"]["channelTitle"],
+            yt_id=rawData["snippet"]["channelId"]
+        ),
         thumbnail=rawData["snippet"]["thumbnails"]["default"]["url"],
         viewcount=rawData["statistics"]["viewCount"],
         duration= isodate.parse_duration(rawData["contentDetails"]["duration"]).seconds

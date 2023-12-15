@@ -1,18 +1,17 @@
 # File imports
-import utils
-import youtube
 import reddit
 import db_hook
+import youtube
 # dep imports
-import time
-import os
 from ast import And
+import time
 from pydoc import cli
 from urllib.parse import urlparse
 
 def main():    
     reddit.authenticate()
     reddit.getPosts(10)
+
     youtube.remove_from_playlist()
     
     # You need this sleep for YouTube to catch up, it could probably be reduced but this is safe
