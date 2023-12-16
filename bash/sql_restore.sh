@@ -1,0 +1,1 @@
+cat $1 | docker exec -i mattfm_sql psql -U $2
