@@ -41,7 +41,7 @@ CREATE TABLE youtube.song (
   dates_posted date[],
   genre varchar(64),
   title varchar(100) NOT NULL,
-  artist varchar(100) REFERENCES youtube.artists (name),
+  artist varchar(100) REFERENCES youtube.artists (youtube_id),
   description text NOT NULL,
   viewcount bigint,
   duration int,
@@ -50,7 +50,7 @@ CREATE TABLE youtube.song (
 
 CREATE TABLE mattfm.playlist_item (
   date date NOT NULL,
-  mattfm_id varchar REFERENCES youtube.song (mattfm_id),
-  playlist_id varchar(100) NOT NULL,
+  mattfm_id varchar NOT NULL PRIMARY KEY,
+  playlist_id varchar(100) REFERENCES youtube.song (yt_id),
   r_post varchar(128) REFERENCES reddit.post (permalink)
 );
