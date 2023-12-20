@@ -1,8 +1,10 @@
+# Matt.FM specific files and directories
 auth.json
 youtubeauth.json
 token.pickle
 refresh.token
 log.txt
+djmattAuth.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
