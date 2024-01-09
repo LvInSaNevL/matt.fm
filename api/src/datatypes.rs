@@ -94,6 +94,7 @@ pub struct MinMfmItem {
 // ######
 // Return data structures
 // ######
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct FullReturnItem {
     pub mattfm: MinMfmItem,

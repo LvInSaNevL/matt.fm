@@ -11,7 +11,7 @@ pub async fn today(State(pool): State<PgPool>) -> Response {
 
     // Execute a query
     let query: Result<Vec<datatypes::MfmItem>, Error> = sqlx::query_as::<_, datatypes::MfmItem>(
-        "SELECT * FROM mattfm.playlist_item WHERE date='2024-01-07';"
+        "SELECT * FROM mattfm.playlist_item WHERE date=$1;"
     ).bind(&now_date)
      .fetch_all(&pool)
      .await;
@@ -19,11 +19,11 @@ pub async fn today(State(pool): State<PgPool>) -> Response {
     match query {
         Ok(data) => {
             let mut return_songs: Vec<datatypes::MinReturnItem> = Vec::new();
-            println!("{:#?}", data.len());
             for song in data.iter() {
                 return_songs.push(datatypes::MinReturnItem::New(song.clone(), axum::extract::State(pool.clone())).await);
             }
-            axum::Json(return_songs).into_response()
+            if return_songs.is_empty() { return StatusCode::NO_CONTENT.into_response() }
+            else { axum::Json(return_songs).into_response() }
         }
         Err(e) => {
             StatusCode::INTERNAL_SERVER_ERROR.into_response()

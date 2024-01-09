@@ -31,6 +31,7 @@ async fn main() {
     // build our application with a route
     let app = Router::new().route("/", get(handler))
                            .route("/song/full", post(song::full))
+                           .route("/song/minimal", post(song::minimal))
                            .route("/playlist/today", get(playlist::today))
                            .with_state(pool);
 
