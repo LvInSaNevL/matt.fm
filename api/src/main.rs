@@ -1,10 +1,10 @@
 mod playlist;
 mod datatypes;
-// mod db_hook;
+mod song;
 
 use axum::{
     response::Html,
-    routing::get,
+    routing::{get, post},
     Router,
 };
 use sqlx::postgres::PgPoolOptions;
@@ -30,6 +30,7 @@ async fn main() {
 
     // build our application with a route
     let app = Router::new().route("/", get(handler))
+                           .route("/song/full", post(song::full))
                            .route("/playlist/today", get(playlist::today))
                            .with_state(pool);
 
