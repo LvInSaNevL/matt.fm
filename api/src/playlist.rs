@@ -20,7 +20,7 @@ pub async fn today(State(pool): State<PgPool>) -> Response {
         Ok(data) => {
             let mut return_songs: Vec<datatypes::MinReturnItem> = Vec::new();
             for song in data.iter() {
-                return_songs.push(datatypes::MinReturnItem::New(song.clone(), axum::extract::State(pool.clone())).await);
+                return_songs.push(datatypes::MinReturnItem::new(song.clone(), axum::extract::State(pool.clone())).await);
             }
             if return_songs.is_empty() { return StatusCode::NO_CONTENT.into_response() }
             else { axum::Json(return_songs).into_response() }

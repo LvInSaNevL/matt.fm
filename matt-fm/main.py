@@ -8,7 +8,7 @@ import time
 def main():    
     # Getting reddit data
     reddit.authenticate()
-    reddit.getPosts(100)
+    reddit.getPosts(10)
 
     # Cleaning out the existing playlists
     youtube.remove_from_playlist()

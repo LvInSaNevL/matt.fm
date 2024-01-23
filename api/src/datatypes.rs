@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 use axum::extract::State;
-use sqlx::{postgres::PgPool, Error, FromRow};
+use sqlx::{postgres::PgPool, FromRow};
 
 // ######
 // Standard data structures
@@ -102,7 +102,7 @@ pub struct FullReturnItem {
     pub youtube: Song
 }
 impl FullReturnItem {
-    pub async fn New(data: MfmItem, State(pool): State<PgPool>) -> FullReturnItem {
+    pub async fn new(data: MfmItem, State(pool): State<PgPool>) -> FullReturnItem {
         let r_query: RedditPost = sqlx::query_as::<_, RedditPost>(
             "SELECT * FROM reddit.post WHERE permalink=$1;"
         ).bind(&data.r_post)
@@ -136,7 +136,7 @@ pub struct MinReturnItem {
     pub youtube: MinSong
 }
 impl MinReturnItem {
-    pub async fn New(data: MfmItem, State(pool): State<PgPool>) -> MinReturnItem {
+    pub async fn new(data: MfmItem, State(pool): State<PgPool>) -> MinReturnItem {
         let r_query: RedditPost = sqlx::query_as::<_, RedditPost>(
             "SELECT * FROM reddit.post WHERE permalink=$1;"
         ).bind(&data.r_post)

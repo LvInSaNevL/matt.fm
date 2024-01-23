@@ -21,7 +21,7 @@ pub async fn full(State(pool): State<PgPool>, Json(payload): Json<SongRequest>) 
         
         match query {
             Ok(data) => {
-                response.push(datatypes::FullReturnItem::New(data.clone(), axum::extract::State(pool.clone())).await);
+                response.push(datatypes::FullReturnItem::new(data.clone(), axum::extract::State(pool.clone())).await);
             }
             Err(e) => {
                 return StatusCode::INTERNAL_SERVER_ERROR.into_response()
@@ -44,7 +44,7 @@ pub async fn minimal(State(pool): State<PgPool>, Json(payload): Json<SongRequest
         
         match query {
             Ok(data) => {
-                response.push(datatypes::MinReturnItem::New(data.clone(), axum::extract::State(pool.clone())).await);
+                response.push(datatypes::MinReturnItem::new(data.clone(), axum::extract::State(pool.clone())).await);
             }
             Err(e) => {
                 return StatusCode::INTERNAL_SERVER_ERROR.into_response()

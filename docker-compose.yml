@@ -1,14 +1,5 @@
 version: '3'
-networks:
-  mfmnet:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: "172.19.0.0/24"
-          gateway: "172.19.0.1"
-     
-
+ 
 services:
   postgres:
     container_name: mattfm_sql
@@ -43,6 +34,33 @@ services:
       PGADMIN_DEFAULT_PASSWORD: admin
     restart: unless-stopped
 
+  rust:
+    container_name: mattfm_api
+    image: rust
+    depends_on:
+      - postgres
+    hostname: mattfm_api
+    networks:
+      mfmnet:
+        ipv4_address: 172.19.0.6
+    ports:
+      - "6676:6676"
+    environment:
+      DB_URL: postgres://postgres:postgres@172.19.0.4:5432/mattfm
+      APP_ENV: prod 
+    volumes:
+      - ./api:/matt-fm
+    command: bash -c "chmod +x /matt-fm/build.sh && ./matt-fm/build.sh"
+    restart: unless-stopped
+
+networks:
+  mfmnet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.19.0.0/24"
+          gateway: "172.19.0.1"
   # python:
   #   container_name: mattfm_dj
   #   image: python
