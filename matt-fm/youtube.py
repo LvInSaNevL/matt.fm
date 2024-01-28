@@ -25,7 +25,7 @@ import datatypes
 # Variables and such
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl",
           "https://www.googleapis.com/auth/youtube.readonly"]
-playlist = "PL4QDB2QvOpDkw9d28o9uAZmOcmm2C1O2O"
+playlist = "PL4QDB2QvOpDmz4YHkJcPqdMBs51cSnEdo"
 lastAuth = datetime.datetime.min       
 
 # Authenticates to the Google API
@@ -89,15 +89,10 @@ def add_to_playlist(videoID):
             )
         ).execute()
         utils.logPrint(add_video_response['snippet']['title'], 0)
-    except googleapiclient.errors.HttpError as err:
-        if err.reason == "quotaExceeded":
-            utils.logPrint("Quota limit exceded, terminating program.", 4)
-            sys.exit()
-        elif err.reason == "backendError":
-            datetime.time.sleep(0.250)
-            add_to_playlist(videoID)
-        else:
-            utils.logPrint("Unhandled exception while adding video: " + str(err), 4)
+    except googleapiclient.errors.HttpError as e:
+            print(e)
+    except:
+        utils.logPrint(sys.exc_info()[0], 2)
 
 ### <summary>
 # Recursively removes all videos from the current playlist
@@ -148,13 +143,25 @@ def remove_from_playlist():
         except:
             utils.logPrint(sys.exc_info()[0], 2)
 
-### <summary>
-# Simple helper function to verify that the youtube video is available on YT Music
-# Also happens to provide the duration of the video which is handy
-# <param name=videoID> The YouTube video ID, usually provided by URL
-# <returns> Boolean value to tell if video is available
-### </summary>
 def check_video_exist(videoID):
+    """A simple helper function to verify that the YT video is available on YT Music, because the
+    YT API doesn't have that information handy
+
+    Parameters
+    ----------
+    videoID : str
+        The ID of the video to check
+
+    Returns
+    -------
+    A boolean value telling if the video is available
+        True = video is available
+        False = video is not available
+
+    Raises
+    ------
+    Honestly I'm not sure, but I am catching something
+    """
     utils.logPrint("Checking if " + videoID + " exists", 0)
     # Request to check if it is available on YT Music since there is no official way
     # Free API access that doesn't effect our quota so this is nice to use
@@ -169,14 +176,19 @@ def check_video_exist(videoID):
             return False
     except Exception as e:
         print(e)
-        pass  
 
-### <summary>
-# Gets all the info available for the song, so we can document it
-# <param name=videoID> The YouTube video ID, usually provided by URL
-# <returns> datatypes.Song()
-### </summary>
 def get_video_info(videoID):
+    """Gets all the info available for the song, so we can document it
+
+    Parameters
+    ----------
+    videoID : str
+        The YouTube video ID, usually provided by URL
+
+    Returns
+    -------
+    datatypes.Song()
+    """
     utils.logPrint("Getting data for " + videoID, 0)
 
     # Making sure the song is actually available before hitting the YT API
