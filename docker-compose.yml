@@ -11,8 +11,8 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin_pwd
     volumes:
       - ./database:/matt-fm
       - ./database/matt-fm.sql:/docker-entrypoint-initdb.d/matt-fm.sql
@@ -30,8 +30,8 @@ services:
     ports:
       - "8080:80"
     environment:
-      PGADMIN_DEFAULT_EMAIL: pgadmin4@pgadmin.org
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: email@email.com
+      PGADMIN_DEFAULT_PASSWORD: email_pwd
     restart: unless-stopped
 
   rust:
@@ -45,9 +45,6 @@ services:
         ipv4_address: 172.19.0.6
     ports:
       - "6676:6676"
-    environment:
-      DB_URL: postgres://postgres:postgres@172.19.0.4:5432/mattfm
-      APP_ENV: prod 
     volumes:
       - ./api:/matt-fm
     command: bash -c "chmod +x /matt-fm/build.sh && ./matt-fm/build.sh"
@@ -61,15 +58,3 @@ networks:
       config:
         - subnet: "172.19.0.0/24"
           gateway: "172.19.0.1"
-  # python:
-  #   container_name: mattfm_dj
-  #   image: python
-  #   depends_on:
-  #     - postgres
-  #   hostname: mattfm_dj
-  #   networks:
-  #     mfmnet:
-  #       ipv4_address: 172.19.0.3
-  #   volumes:
-  #     - ./matt-fm:/app
-  #   command: bash -c "pip install --upgrade pip && pip install -r /matt.fm/requirements.txt && python3 /matt.fm/main.py"
