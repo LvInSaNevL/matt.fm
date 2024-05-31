@@ -13,10 +13,12 @@ pub enum Error {
     CouldNotParseEnvironmentVariable(#[from] ParseIntError),
 }
 
+#[derive(Debug)]
 pub struct AppConfig {
     pub database_max_connections: u32,
     pub database_timeout: Duration,
     pub database_url: String,
+    pub app_url: String,
 }
 
 impl AppConfig {
@@ -25,6 +27,7 @@ impl AppConfig {
             database_max_connections: "DATABASE_MAX_CONNECTIONS".try_get()?,
             database_timeout: "DATABASE_TIMEOUT_MS".try_get()?,
             database_url: "DATABASE_URL".try_get()?,
+            app_url: "APP_URL".try_get()?,
         })
     }
 }
