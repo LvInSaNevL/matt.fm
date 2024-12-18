@@ -1,60 +1,97 @@
 version: '3'
  
 services:
+  # A reverse proxy to allow routing to specific services
+  traefik:
+    container_name: mattfm_proxy
+    image: traefik
+    hostname: mattfm_proxy
+    ports: 
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./proxy:/proxy # Traefik files
+      - /var/run/docker.sock:/var/run/docker.sock:ro #Allows Traefik to listen to docker events
+      - ./proxy/acme.json:/acme.json # Stores HTTP certs
+      - /etc/localtime:/etc/localtime:ro # Syncs the container's time with the host computer
+    command:
+      # Debug stuff, can be removed before deployment
+      - --log.level=DEBUG
+      - --log.filePath=./proxy/traefik.log
+      # Redirects HTTP(port 80) traffic to HTTPS(port 443)
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      # Docker config
+      - --providers.docker=true
+      - --providers.docker.exposedByDefault=false
+      - --api
+      # Lets Encrypt resolver
+      - --certificatesresolvers.letsencryptresolver.acme.email=${EMAIL}
+      - --certificatesresolvers.letsencryptresolver.acme.httpChallenge=true
+      - --certificatesresolvers.letsencryptresolver.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencryptresolver.acme.storage=./proxy/acme.json
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.proxy.middlewares=admin
+      - traefik.http.middlewares.admin.basicauth.users=${HTTP_BASIC_USER}:${HTTP_BASIC_PWD}
+      - traefik.http.routers.proxy.rule=Host(`traefik.${DOMAINNAME}`)
+      - traefik.http.routers.proxy.entrypoints=websecure
+      - traefik.http.routers.proxy.service=api@internal
+      - traefik.http.routers.proxy.tls.certresolver=letsencryptresolver
+      - traefik.http.routers.dashboard-http.entrypoints=web
+    restart: unless-stopped
+  # The Matt.FM database
   postgres:
     container_name: mattfm_sql
     image: postgres
     hostname: mattfm_sql
-    networks:
-      mfmnet:
-        ipv4_address: 172.19.0.4
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin_pwd
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PWD}
     volumes:
       - ./database:/matt-fm
       - ./database/matt-fm.sql:/docker-entrypoint-initdb.d/matt-fm.sql
+    labels:
+      - --traefik.enable=false
     restart: unless-stopped
-
+  # Database managment console
   pgadmin:
     container_name: mattfm_sql_admin
     image: dpage/pgadmin4
     depends_on:
       - postgres
     hostname: mattfm_sql_admin
-    networks:
-      mfmnet:
-        ipv4_address: 172.19.0.5
     ports:
       - "8080:80"
     environment:
-      PGADMIN_DEFAULT_EMAIL: email@email.com
-      PGADMIN_DEFAULT_PASSWORD: email_pwd
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PWD}
     restart: unless-stopped
-
+  # The API
   rust:
     container_name: mattfm_api
     image: rust
     depends_on:
+      - traefik
       - postgres
     hostname: mattfm_api
-    networks:
-      mfmnet:
-        ipv4_address: 172.19.0.6
     ports:
       - "6676:6676"
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.mattfm_api_service.loadbalancer.service.port=6676
+      - traefik.http.routers.reader.rule=Host(`api.${DOMAINNAME}`)
+      - traefik.http.routers.reader.entrypoints=websecure
+      - traefik.http.routers.reader.tls.certresolver=letsencryptresolver
+      - traefik.http.routers.reader.tls=true
+    environment:
+      DB_URL: ${DB_URL}
+      APP_ENV: ${APP_ENV}
     volumes:
       - ./api:/matt-fm
     command: bash -c "chmod +x /matt-fm/build.sh && ./matt-fm/build.sh"
     restart: unless-stopped
-
-networks:
-  mfmnet:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: "172.19.0.0/24"
-          gateway: "172.19.0.1"

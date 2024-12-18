@@ -215,7 +215,9 @@ def get_video_info(videoID):
             "[free]" not in rawData["snippet"]["title"].lower(),
             "type beat" not in rawData["snippet"]["title"].lower(),
             "ost" not in rawData["snippet"]["title"].lower(),
-            int(rawData["statistics"]["viewCount"]) <= 75000
+            "#ai" not in rawData["snippet"]["title"].lower(),
+            "ai cover" rawData["snippet"]["title"].lower(),
+            int(rawData["statistics"]["viewCount"]) <= 50000
         )
     if not all(checks):
         return None    

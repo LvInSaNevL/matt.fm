@@ -2,8 +2,8 @@
 CREATE DATABASE mattfm ENCODING 'UTF8';
 
 -- Create roles
-CREATE ROLE api_key WITH LOGIN PASSWORD 'api_pwd';
-CREATE ROLE dj_matt WITH LOGIN PASSWORD 'dj_pwd';
+CREATE ROLE api_key WITH LOGIN PASSWORD 'Staining4-John-Disallow';
+CREATE ROLE dj_matt WITH LOGIN PASSWORD 'Maturely-Unsaid-Barracuda7';
 
 -- Connect to the database
 \c mattfm;
@@ -91,3 +91,6 @@ GRANT SELECT ON TABLE reddit.post TO api_key;
 
 -- Reload configuration to apply changes
 SELECT pg_reload_conf();
+
+-- Double checks that everything worked
+\z mattfm.playlist_item;

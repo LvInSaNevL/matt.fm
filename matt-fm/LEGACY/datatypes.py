@@ -1,8 +1,8 @@
-from dataclasses import dataclass
+import dataclasses
 from datetime import datetime
 from urllib.parse import urlparse
 
-@dataclass
+@dataclasses.dataclass
 class Artist:
     """Stores information about the artists YT channel. Represents the `youtube.artists` table
 
@@ -15,8 +15,11 @@ class Artist:
     """
     name: str
     yt_id: str
+    
+    def __iter__(self):
+        return (getattr(self, field.name) for field in dataclasses.fields(self))
 
-@dataclass
+@dataclasses.dataclass
 class Song:
     """All of the information about the song and associated YT video
 
@@ -44,7 +47,7 @@ class Song:
         How long is the video, in seconds
     """
     yt_id: str
-    mfm_id: str
+    # mfm_id: str
     published: str
     genre: str
     title: str
@@ -53,8 +56,11 @@ class Song:
     thumbnail: str
     viewcount: int
     duration: int
+    
+    def __iter__(self):
+        return (getattr(self, field.name) for field in dataclasses.fields(self))
   
-@dataclass
+@dataclasses.dataclass
 class Post:
     """Information about the reddit post
 
@@ -81,8 +87,13 @@ class Post:
     permalink: str
     ups: int
     downs: int
+    
+    def __iter__(self):
+        return (getattr(self, field.name) for field in dataclasses.fields(self))
 
-@dataclass
+@dataclasses.dataclass
 class mattfm_item:
     song: Song
     post: Post
+    def __iter__(self):
+        return (getattr(self, field.name) for field in dataclasses.fields(self))
