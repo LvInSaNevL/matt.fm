@@ -1,0 +1,65 @@
+# # traefik.toml
+
+# # Global configuration
+# [global]
+#   checkNewVersion = true
+
+# # EntryPoints configuration
+# [entryPoints]
+#   [entryPoints.web]
+#     address = ":80"
+#   [entryPoints.websecure]
+#     address = ":443"
+
+# # API configuration
+# [api]
+
+# # Docker provider configuration
+# [providers.docker]
+#   exposedByDefault = false
+
+# # HTTP routers configuration
+# [http.routers]
+#   # Traefik dashboard
+#   [http.routers.traefik]
+#     rule = "Host(`traefik.${DOMAINNAME}`)"
+#     entryPoints = ["websecure"]
+#     service = "api@internal"
+#     tls = true
+#     tls.certresolver = "letsencryptresolver"
+#     middlewares = ["admin"]
+
+#   # Rust API
+#   [http.routers.rust]
+#     rule = "Host(`api.${DOMAINNAME}`)"
+#     entryPoints = ["websecure"]
+#     service = "rust"
+#     tls = true
+#     tls.certresolver = "letsencryptresolver"
+
+# # HTTP services configuration
+# [http.services]
+#   # Traefik dashboard service
+#   [http.services.api@internal]
+#     [http.services.api@internal.loadBalancer]
+#       passHostHeader = true
+#       [[http.services.api@internal.servers]]
+#         url = "http://127.0.0.1:8080"
+
+#   # Rust API service
+#   [http.services.rust]
+#     [http.services.rust.loadBalancer]
+#       passHostHeader = true
+#       [[http.services.rust.servers]]
+#         url = "http://mattfm_api:6676"  # Adjust the service name and port accordingly
+
+# # Middlewares configuration
+# [http.middlewares]
+#   [http.middlewares.admin.basicauth]
+#     users = ["${HTTP_BASIC_USER}:${HTTP_BASIC_PWD}"]
+
+# # CertificatesResolvers configuration
+# [certificatesResolvers.letsencryptresolver.acme]
+#   email = "${EMAIL}"
+#   httpChallenge = true
+#   httpChallenge.entryPoint = "web"

@@ -5,6 +5,7 @@ token.pickle
 refresh.token
 log.txt
 djmattAuth.json
+acme.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

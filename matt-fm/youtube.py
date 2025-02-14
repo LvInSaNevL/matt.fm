@@ -1,18 +1,12 @@
-from ctypes import util
-from http import HTTPStatus
-import sys
-from pydoc import cli
-import datetime
-import isodate
-import re
-from urllib import response
-from urllib.error import HTTPError
-import requests
-import json
-from urllib.parse import urlparse
-import os
+# File imports
 import utils
-
+import datatypes
+# Dep imports
+import datetime
+import requests
+import isodate
+import os
+# YouTube specific imports
 import google.auth.exceptions
 import google_auth_oauthlib
 import google.oauth2
@@ -20,20 +14,32 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 import googleapiclient.discovery
 import googleapiclient.errors
-import datatypes
 
 # Variables and such
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl",
           "https://www.googleapis.com/auth/youtube.readonly"]
-playlist = "PL4QDB2QvOpDmz4YHkJcPqdMBs51cSnEdo"
+# playlist = "PL4QDB2QvOpDmz4YHkJcPqdMBs51cSnEdo" # Prod
+playlist = "PL4QDB2QvOpDkw9d28o9uAZmOcmm2C1O2O" # Testing
 lastAuth = datetime.datetime.min       
+
+###############
+# ERROR TYPES #
+###############
+'''
+Returned if a video is not available on youtube, usually because of a 404 response
+'''
+class VideoNotAvailable(Exception):
+    pass
 
 # Authenticates to the Google API
 def get_authenticated_service(lastAuth):
     utils.logPrint("Authenticating YouTube service access and refresh token", 0)
+
+    # YouTube has strict rate limits, so we have to throttle ourselves
     nowAuth = datetime.datetime.now()
     authDiff = nowAuth - lastAuth
     if (authDiff.total_seconds() * 1000 < 250):
+        utils.logPrint("Refresh cycle not reached, waiting", 0)
         datetime.time.sleep(0.150)
     
     lastAuth = datetime.datetime.now()
@@ -46,6 +52,7 @@ def get_authenticated_service(lastAuth):
 
     # Try to use the refresh token first
     if os.path.exists("refresh.token"):
+        utils.logPrint("Attempting to read refresh.token", 0)
         try:
             cred_token = Credentials.from_authorized_user_file('refresh.token')
             cred_token.refresh(Request())
@@ -53,6 +60,7 @@ def get_authenticated_service(lastAuth):
             print(e)
     # Manually authenticate with the user if no token is available  
     else:
+        utils.logPrint("Unable to read token, falling back to auth flow")
         credFlow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(client_secrets_file, scopes)
         cred = credFlow.run_local_server(
             host='localhost',
@@ -66,38 +74,9 @@ def get_authenticated_service(lastAuth):
     return googleapiclient.discovery.build(api_service_name, api_version, credentials=cred_token)
 
 ### <summary>
-# Adds a new video to the playlist
-# <param name=videoID> The YouTube video ID, usually provided by URL
-### </summary
-def add_to_playlist(videoID):
-    utils.logPrint("Adding {0} to playlist".format(videoID), 0)
-
-    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-    youtube = get_authenticated_service(lastAuth)
-
-    try:
-        add_video_response = youtube.playlistItems().insert(
-            part="snippet",
-            body=dict(
-                snippet=dict(
-                    playlistId=playlist,
-                    resourceId=dict(
-                        kind="youtube#video",
-                        videoId=videoID
-                    )
-                )
-            )
-        ).execute()
-        utils.logPrint(add_video_response['snippet']['title'], 0)
-    except googleapiclient.errors.HttpError as e:
-            print(e)
-    except:
-        utils.logPrint(sys.exc_info()[0], 2)
-
-### <summary>
 # Recursively removes all videos from the current playlist
 ### </summary>
-def remove_from_playlist():
+def clear_playlist():
     utils.logPrint("Clearing out yesterdays music", 0)
 
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
@@ -129,7 +108,6 @@ def remove_from_playlist():
         response = request.execute()
         for p in response['items']:
             playlist_items.append(p)
-    utils.logPrint(playlist_items, 0)
     
     for t in playlist_items:
         try:
@@ -143,96 +121,130 @@ def remove_from_playlist():
         except:
             utils.logPrint(sys.exc_info()[0], 2)
 
-def check_video_exist(videoID):
-    """A simple helper function to verify that the YT video is available on YT Music, because the
-    YT API doesn't have that information handy
+def playability(VIDEO_ID):    
+    '''
+    Returns the playability status of a song on YouTube Music
+        True = Playable
+        False = Not Playable
 
-    Parameters
-    ----------
-    videoID : str
-        The ID of the video to check
+    Usage Examples:
+    Give me a second - Annie = NOT PLAYABLE
+    >>> playability("MgNDY2qKZGo")
+    False
+    
+    Never gonna give you up - Rick Astley = PLAYABLE
+    >>> playability("dQw4w9WgXcQ")
+    True
 
-    Returns
-    -------
-    A boolean value telling if the video is available
-        True = video is available
-        False = video is not available
+    Invalid Song - Made Up Artist = NOT PLAYABLE
+    >> playability("cumfuck")
+    VideoNotAvailable
+    '''
+    URL = "https://music.youtube.com/youtubei/v1/player"
+    API_KEY = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8"
 
-    Raises
-    ------
-    Honestly I'm not sure, but I am catching something
-    """
-    utils.logPrint("Checking if " + videoID + " exists", 0)
-    # Request to check if it is available on YT Music since there is no official way
-    # Free API access that doesn't effect our quota so this is nice to use
-    try:
-        headers = {'Accept-Encoding': 'identity'}
-        url = "https://yt.lemnoslife.com/videos?part=music&id=" + videoID
-        request = requests.get(url=url)
-        isMusic = json.loads(request.text)      
-        if isMusic['items'][0]['music']['available']:
+    headers = {
+        "Content-Type": "application/json",
+        "Accept-Language": "en",
+        "Referer": "https://music.youtube.com"
+    }
+
+    payload = {
+        "videoId": VIDEO_ID,
+        "context": {
+            "client": {
+                "clientName": "WEB_REMIX",
+                "clientVersion": "1.9999099"
+            }
+        }
+    }
+
+    response = requests.post(f"{URL}?key={API_KEY}", headers=headers, json=payload)
+
+    if response.status_code == 200:
+        data = response.json()
+        playable = data["playabilityStatus"]["status"]
+        if (playable == "OK"):
             return True
+        elif (playable == "UNPLAYABLE"):
+            return False
+        elif (playable == "ERROR"):
+            if (data["playabilityStatus"]['reason'] == "This video is unavailable"):
+                return VideoNotAvailable({"id": VIDEO_ID, "message": "Video is no longer available on youtube"})
         else:
             return False
-    except Exception as e:
-        print(e)
+    else:
+        print(f"Request failed with status code {response.status_code}: {response.text}")
 
-def get_video_info(videoID):
-    """Gets all the info available for the song, so we can document it
+# contentDetails,status
+def get_video(videoID):
+    utils.logPrint("Gettting info about {0}".format(videoID), 0)
 
-    Parameters
-    ----------
-    videoID : str
-        The YouTube video ID, usually provided by URL
-
-    Returns
-    -------
-    datatypes.Song()
-    """
-    utils.logPrint("Getting data for " + videoID, 0)
-
-    # Making sure the song is actually available before hitting the YT API
-    isAvailable = check_video_exist(videoID)
-    if not isAvailable:
-        return None
-
-    # Getting the data from the YT API
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     youtube = get_authenticated_service(lastAuth)
-
-    # Makes the first round of API calls
     request = youtube.videos().list(
-        part="snippet,topicDetails,contentDetails,statistics",
+        part="snippet,topicDetails,contentDetails,statistics,status",
         id=videoID
     )
     response = request.execute()
-    
     rawData = response["items"][0]
+    print(rawData)
 
     # Final round of checks to make sure song meets criteria
+    songLength = isodate.parse_duration(rawData["contentDetails"]["duration"]).seconds
     checks = (
-            60 < isodate.parse_duration(rawData["contentDetails"]["duration"]).seconds < 600,
+            60 < songLength < 600,
             "[free]" not in rawData["snippet"]["title"].lower(),
             "type beat" not in rawData["snippet"]["title"].lower(),
             "ost" not in rawData["snippet"]["title"].lower(),
-            int(rawData["statistics"]["viewCount"]) <= 75000
+            "#ai" not in rawData["snippet"]["title"].lower(),
+            "ai cover" not in rawData["snippet"]["title"].lower(),
+            int(rawData["statistics"]["viewCount"]) <= 50000
         )
     if not all(checks):
-        return None    
+        return None  
+    else:
+        _thumbs = rawData['snippet']['thumbnails'].popitem()
+        return datatypes.Song(
+                yt_id = rawData['id'],
+                # mfm_id: str
+                published = rawData['snippet']['publishedAt'],
+                genre = rawData['topicDetails']['topicCategories'][-1], 
+                title = rawData['snippet']['title'],
+                description = rawData['snippet']['description'],
+                artist = datatypes.Artist(
+                        name = rawData['snippet']['channelTitle'],
+                        yt_id = rawData['snippet']['channelId']
+                ),
+                thumbnail = _thumbs[1],
+                viewcount = rawData['statistics']['viewCount'],
+                duration = songLength
+            )
 
-    data = datatypes.Song(
-        yt_id=rawData["id"],
-        mfm_id=utils.genUUID(),
-        published=rawData["snippet"]["publishedAt"],
-        genre=rawData["topicDetails"]["topicCategories"][0],
-        title=rawData["snippet"]["title"],
-        description=rawData["snippet"]["description"],
-        artist=datatypes.Artist(
-            name=rawData["snippet"]["channelTitle"],
-            yt_id=rawData["snippet"]["channelId"]
-        ),
-        thumbnail=rawData["snippet"]["thumbnails"]["default"]["url"],
-        viewcount=rawData["statistics"]["viewCount"],
-        duration= isodate.parse_duration(rawData["contentDetails"]["duration"]).seconds
-    )
-    return data
+
+def add_video(videoID):
+    utils.logPrint("Adding {0} to playlist".format(videoID), 0)
+
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+    youtube = get_authenticated_service(lastAuth)
+
+    try:
+        add_video_response = youtube.playlistItems().insert(
+            part="snippet",
+            body=dict(
+                snippet=dict(
+                    playlistId=playlist,
+                    resourceId=dict(
+                        kind="youtube#video",
+                        videoId=videoID
+                    )
+                )
+            )
+        ).execute()
+        print(add_video_response)
+        utils.logPrint(add_video_response['snippet']['title'], 0)
+        return True
+    except googleapiclient.errors.HttpError as e:
+            print(e)
+    except Exception as e:
+        utils.logPrint(f"Fatal Error: {e}", 4)

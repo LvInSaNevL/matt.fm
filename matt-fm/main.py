@@ -1,33 +1,34 @@
-# File imports
+# File Imports
+import utils
 import reddit
-import db_hook
+import datatypes
 import youtube
-# dep imports
+# Dep imports
 import time
 
-def main():    
+todayDB = []
+
+def main():
     # Getting reddit data
-    reddit.authenticate()
-    reddit.getPosts(5)
+    utils.logPrint("Getting Reddit data", 0)
+    reddit_data = reddit.get_posts(5)
 
-    # Cleaning out the existing playlists
-    # youtube.remove_from_playlist()
-    
-    # You need this sleep for YouTube to catch up, it could probably be reduced but this is safe
-    data = db_hook.todaySongs
-    time.sleep(5)
-    
-    # # Adding songs to the YT playlist
-    # for c in data:
-    #     print(c)
-    #     youtube.add_to_playlist(c.song.yt_id)
+    utils.logPrint("Clearing YT playlist", 0)
+    youtube.clear_playlist()
 
-    # Adding songs to the YT database
-    db_hook.updateDB()
+    utils.logPrint("Getting YouTube data", 0)
+    for r in reddit_data:
+        yt_data = youtube.get_video(r.yt_id)
+        if (yt_data is not None):
+            youtube.add_video(r.yt_id)
+            todayDB.append(datatypes.mattfm_item(
+                mfm_id = utils.genUUID(),
+                song = yt_data,
+                post = r
+            ))
 
-
-# Actual start
+# Actual program start
 if __name__ == "__main__":
     start_time = time.time()
     main()
-    print("Matt.FM execution took {} seconds".format(int((time.time() - start_time))))
+    utils.logPrint("Matt.FM execution took {} seconds".format(int((time.time() - start_time))), 0)

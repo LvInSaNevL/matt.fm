@@ -1,23 +1,30 @@
-# File imports
+# File Imports
 import utils
-import youtube
-import db_hook
 import datatypes
-# dep imports
+import youtube
+# Dep Imports
 import time
+import datetime
 import praw
 import re
 
+'''
+<summary>
+Generates an OAuth token to access Reddit. 
+<returns> A PRAW Reddit authentication object, `redditAuth`
+'''
 last_call = 0
-contnentLinks = []
+def _authenticate():
+    '''
+    <summary>
 
-### <summary>
-# As of July 2023 Reddit started to rate limit their API, so we needed a helper function in order
-# to keep them from shutting off our API. Only allows MFM to hit the API every 3 seconds 
-# <returns> A PRAW Reddit authentication object, `redditAuth`
-### </summary>
-def authenticate():
-    # Makes sure its been at least 3sec since we last used the API
+    Generates an OAuth token to access Reddit. Reddit has a pretty strict timeout policy
+    though so we have to rate limit outselves. 
+
+    <returns> 
+
+    A PRAW Reddit authentication object, `redditAuth`
+    '''
     global last_call
     while time.time() - last_call < 3:
       time.sleep(1)
@@ -31,57 +38,58 @@ def authenticate():
                         user_agent=auth['user_agent'],
                         username=auth['username'],                     
                         password=auth['password'])
-    
+    print(redditAuth.user.me())
     return redditAuth
 
-### <summary>
-# This is honestly the main loop of MFM. Its primary role is to crawl the multireddit for music
-# but it also needs to hit the YT API to make sure it's a real song, so I just get all the song
-# data at that point as well. 
-# <param name=count> (int) The number of songs we want in the playlist
-# <returns> `contentLinks`, which is a list of IDs, we probably don't actually need to do this
-### </summary>
-def getPosts(count):    
-    utils.logPrint("Retreiving music", 0)
+def get_posts(number=1):
+    '''
+    <summary>
 
-    # This matches against the various YT URLs, so we can get the video ID
-    regex = "((?<=(v|V)/)|(?<=be/)|(?<=(\?|\&)v=)|(?<=embed/))([\w-]+)"
-    creds = authenticate()
-    for i in creds.multireddit('matt-fm', 'music').hot(limit=250):
-        if len(db_hook.todaySongs) < count:
-            # This entire code block is in a try/except loop is because sometimes when the regex
-            # matches against a non-YT URL the program will crash
-            try: 
-                # Checks to see if song is has been seen already
-                result = re.search(regex, i.url)
-                if result.group() in contnentLinks:
-                    continue
-                             
-                # You need to do this to get the subreddit I guess
-                submission = authenticate().submission(id=i.id)
+    Gets the top posts from the reddit Multireddit that we have set up. 
 
-                # Just an extra check to get rid of anything not available on YT Music
-                ytData = youtube.get_video_info(result.group())
-                if ytData is None: continue
+    <parameters>
+    number: int
+        How many posts you want returned. Default is 1. 
+    '''
+    posts = []
+    auth = _authenticate()
+    # Matches against all YT URLs, including shortened ones or ones with tracking
+    yt_regex = "((?<=(v|V)/)|(?<=be/)|(?<=(\?|\&)v=)|(?<=embed/))([\w-]+)"
 
-                # Creating the dataset for this song
-                data = datatypes.mattfm_item(
-                    song=ytData,
-                    post=datatypes.Post(
-                        subreddit=str(submission.subreddit),
-                        published=i.created_utc,
-                        title=i.title,
-                        permalink=i.id,
-                        ups=i.ups,
-                        downs=i.downs
-                    )
+    all_posts = auth.multireddit('matt-fm', 'music').hot(limit=250)
+    post_iterator = 0
+    while (len(posts) < number):
+        current_post = next(all_posts)
+        '''
+        This entire code block is in a try/catch because sometimes when the regex
+        matches against a non-YT URL the program crashes. 
+        No idea why, but I think it has to do with my regex matching
+        '''
+        try: 
+            result = re.search(yt_regex, current_post.url)
+            if (not youtube.playability(result.group())):
+                utils.logPrint(f"Video {result.group()} is not available on YouTube Music", 2)
+                continue
+            if (result.group() in posts):
+                continue
+            else:
+                utils.logPrint(f"Adding post {current_post.id} to the return list", 1)
+                newPost = datatypes.Post(
+                        subreddit = current_post.subreddit_name_prefixed,
+                        published = datetime.datetime.fromtimestamp(current_post.created).strftime('%Y-%m-%d'),
+                        title = current_post.title,
+                        permalink = current_post.id,
+                        ups = current_post.ups,
+                        downs = int(current_post.ups * current_post.upvote_ratio),
+                        yt_id = result.group()
                 )
-                db_hook.todaySongs.append(data)
-                contnentLinks.append(data.song.yt_id)
-                print("We have {} songs now", len(db_hook.todaySongs))
-                
-            except Exception as e:
-                print(e)
-                pass            
-                    
-    return contnentLinks
+                posts.append(newPost)
+        except AttributeError:
+            utils.logPrint(f"Post {current_post.id} is not a youtube post", 2)
+            continue
+        except Exception as e:
+            utils.logPrint(f"Fatal Error: {e}", 4)
+
+        post_iterator += 1
+
+    return posts
