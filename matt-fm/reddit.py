@@ -67,23 +67,21 @@ def get_posts(number=1):
         '''
         try: 
             result = re.search(yt_regex, current_post.url)
-            if (not youtube.playability(result.group())):
-                utils.logPrint(f"Video {result.group()} is not available on YouTube Music", 2)
-                continue
-            if (result.group() in posts):
-                continue
+            if (youtube.playability(result.group())):
+                if not any(p.yt_id == result.group() for p in posts):  # Check for duplicates in one line
+                    utils.logPrint(f"Adding post {current_post.id} to the return list", 1)
+                    newPost = datatypes.Post(
+                        subreddit=current_post.subreddit_name_prefixed,
+                        published=datetime.datetime.fromtimestamp(current_post.created).strftime('%Y-%m-%d'),
+                        title=current_post.title,
+                        permalink=current_post.id,
+                        ups=current_post.ups,
+                        downs=int(current_post.ups * current_post.upvote_ratio),
+                        yt_id=result.group()
+                    )
+                    posts.append(newPost)
             else:
-                utils.logPrint(f"Adding post {current_post.id} to the return list", 1)
-                newPost = datatypes.Post(
-                        subreddit = current_post.subreddit_name_prefixed,
-                        published = datetime.datetime.fromtimestamp(current_post.created).strftime('%Y-%m-%d'),
-                        title = current_post.title,
-                        permalink = current_post.id,
-                        ups = current_post.ups,
-                        downs = int(current_post.ups * current_post.upvote_ratio),
-                        yt_id = result.group()
-                )
-                posts.append(newPost)
+                print(f"{result.group()} is either not available or already in the list")
         except AttributeError:
             utils.logPrint(f"Post {current_post.id} is not a youtube post", 2)
             continue

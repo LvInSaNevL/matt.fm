@@ -3,9 +3,11 @@ import utils
 import datatypes
 # Dep imports
 import datetime
+import time
 import requests
 import isodate
 import os
+import sys
 # YouTube specific imports
 import google.auth.exceptions
 import google_auth_oauthlib
@@ -22,6 +24,7 @@ scopes = ["https://www.googleapis.com/auth/youtube.force-ssl",
 playlist = "PL4QDB2QvOpDkw9d28o9uAZmOcmm2C1O2O" # Testing
 lastAuth = datetime.datetime.min       
 
+
 ###############
 # ERROR TYPES #
 ###############
@@ -30,6 +33,12 @@ Returned if a video is not available on youtube, usually because of a 404 respon
 '''
 class VideoNotAvailable(Exception):
     pass
+
+
+###############
+# ACTUAL CODE #
+###############
+
 
 # Authenticates to the Google API
 def get_authenticated_service(lastAuth):
@@ -40,7 +49,7 @@ def get_authenticated_service(lastAuth):
     authDiff = nowAuth - lastAuth
     if (authDiff.total_seconds() * 1000 < 250):
         utils.logPrint("Refresh cycle not reached, waiting", 0)
-        datetime.time.sleep(0.150)
+        time.sleep(0.150)
     
     lastAuth = datetime.datetime.now()
 
@@ -76,7 +85,7 @@ def get_authenticated_service(lastAuth):
 ### <summary>
 # Recursively removes all videos from the current playlist
 ### </summary>
-def clear_playlist():
+def clear_playlist(again=True):
     utils.logPrint("Clearing out yesterdays music", 0)
 
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
@@ -99,16 +108,21 @@ def clear_playlist():
         
     utils.logPrint("Getting previous days content", 0)
     while len(playlist_items) < response["pageInfo"]['totalResults']:
-        request = youtube.playlistItems().list(
-            part="snippet,contentDetails",
-            maxResults=50,
-            playlistId=playlist,
-            pageToken=response["nextPageToken"]
-        )        
-        response = request.execute()
-        for p in response['items']:
-            playlist_items.append(p)
-    
+        # Quota limit catching
+        try:
+            request = youtube.playlistItems().list(
+                part="snippet,contentDetails",
+                maxResults=50,
+                playlistId=playlist,
+                pageToken=response["nextPageToken"]
+            )        
+            response = request.execute()
+            for p in response['items']:
+                playlist_items.append(p)
+        except googleapiclient.errors.HttpError as e:
+            if e.resp.status == 403: 
+                utils.logPrint("Quota Expired", 4)
+
     for t in playlist_items:
         try:
             utils.logPrint("Removing " + t["id"], 0)
@@ -120,6 +134,12 @@ def clear_playlist():
             # utils.logPrint("Usually a 404 error that can(?) be ignored " + e, 3)
         except:
             utils.logPrint(sys.exc_info()[0], 2)
+    
+    # Sometimes this doesn't work so this is just a catch, it throws a <HttpError 409> sometimes
+    # It should only run through once more
+    if (again == True):
+        time.sleep(0.250)
+        clear_playlist(again=False)
 
 def playability(VIDEO_ID):    
     '''
@@ -135,6 +155,10 @@ def playability(VIDEO_ID):
     Never gonna give you up - Rick Astley = PLAYABLE
     >>> playability("dQw4w9WgXcQ")
     True
+
+    Unknown song - Unknown Artist = NOT PLAYABLE
+    >> playability("dbL-hteXukA")
+    VideoNotAvailable
 
     Invalid Song - Made Up Artist = NOT PLAYABLE
     >> playability("cumfuck")
@@ -159,20 +183,35 @@ def playability(VIDEO_ID):
         }
     }
 
+
     response = requests.post(f"{URL}?key={API_KEY}", headers=headers, json=payload)
 
     if response.status_code == 200:
         data = response.json()
-        playable = data["playabilityStatus"]["status"]
-        if (playable == "OK"):
-            return True
-        elif (playable == "UNPLAYABLE"):
+        print(VIDEO_ID)
+
+        # Is the video even available on YT?
+        if (data["playabilityStatus"]["status"] == "ERROR"):
+            return VideoNotAvailable({"id": VIDEO_ID, "message": "Video is no longer available on youtube"})
+        elif (data["playabilityStatus"]["status"] == "UNPLAYABLE"):
+            return VideoNotAvailable({"id": VIDEO_ID, "message": "Video is no longer available on youtube"})
+
+        # Else make sure the video is something we want
+        title = data["videoDetails"]["title"].lower()
+        checks = (
+            data["playabilityStatus"]["status"] == "OK",
+            60 < int(data["videoDetails"]["lengthSeconds"]) < 600,
+            "[free]" not in title,
+            "type beat" not in title,
+            "ost" not in title,
+            "#ai" not in title,
+            "ai cover" not in title,
+            int(data["videoDetails"]["viewCount"]) <= 50000
+        )
+        if not all(checks):
             return False
-        elif (playable == "ERROR"):
-            if (data["playabilityStatus"]['reason'] == "This video is unavailable"):
-                return VideoNotAvailable({"id": VIDEO_ID, "message": "Video is no longer available on youtube"})
         else:
-            return False
+            return True
     else:
         print(f"Request failed with status code {response.status_code}: {response.text}")
 
@@ -180,46 +219,48 @@ def playability(VIDEO_ID):
 def get_video(videoID):
     utils.logPrint("Gettting info about {0}".format(videoID), 0)
 
-    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-    youtube = get_authenticated_service(lastAuth)
-    request = youtube.videos().list(
-        part="snippet,topicDetails,contentDetails,statistics,status",
-        id=videoID
-    )
-    response = request.execute()
-    rawData = response["items"][0]
-    print(rawData)
-
-    # Final round of checks to make sure song meets criteria
-    songLength = isodate.parse_duration(rawData["contentDetails"]["duration"]).seconds
-    checks = (
-            60 < songLength < 600,
-            "[free]" not in rawData["snippet"]["title"].lower(),
-            "type beat" not in rawData["snippet"]["title"].lower(),
-            "ost" not in rawData["snippet"]["title"].lower(),
-            "#ai" not in rawData["snippet"]["title"].lower(),
-            "ai cover" not in rawData["snippet"]["title"].lower(),
-            int(rawData["statistics"]["viewCount"]) <= 50000
+    # Catching quota limits
+    try: 
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+        youtube = get_authenticated_service(lastAuth)
+        request = youtube.videos().list(
+            part="snippet,topicDetails,contentDetails,statistics,status",
+            id=videoID
         )
-    if not all(checks):
-        return None  
-    else:
-        _thumbs = rawData['snippet']['thumbnails'].popitem()
-        return datatypes.Song(
-                yt_id = rawData['id'],
-                # mfm_id: str
-                published = rawData['snippet']['publishedAt'],
-                genre = rawData['topicDetails']['topicCategories'][-1], 
-                title = rawData['snippet']['title'],
-                description = rawData['snippet']['description'],
-                artist = datatypes.Artist(
-                        name = rawData['snippet']['channelTitle'],
-                        yt_id = rawData['snippet']['channelId']
-                ),
-                thumbnail = _thumbs[1],
-                viewcount = rawData['statistics']['viewCount'],
-                duration = songLength
-            )
+        response = request.execute()
+    except googleapiclient.errors.HttpError as e:
+        if e.resp.status == 403: 
+            utils.logPrint("Quota Expired", 4)
+    try:
+        rawData = response["items"][0]
+        print(rawData)
+    except:
+        print("error")
+        return
+
+    # Gets the highest quality thumbnail available
+    _thumbs = rawData['snippet']['thumbnails'].popitem()
+    # Some songs don't have topic categories so this checks for it
+    try:
+        genreData = rawData['topicDetails']['topicCategories'][-1]
+    except:
+        utils.logPrint(f"Song {videoID} has no genre data, setting it to the default", 2)
+        genreData = "NO_GENRE"
+    return datatypes.Song(
+            yt_id = rawData['id'],
+            # mfm_id: str
+            published = rawData['snippet']['publishedAt'],
+            genre = genreData, 
+            title = rawData['snippet']['title'],
+            description = rawData['snippet']['description'],
+            artist = datatypes.Artist(
+                    name = rawData['snippet']['channelTitle'],
+                    yt_id = rawData['snippet']['channelId']
+            ),
+            thumbnail = _thumbs[1],
+            viewcount = rawData['statistics']['viewCount'],
+            duration = isodate.parse_duration(rawData["contentDetails"]["duration"]).seconds
+        )
 
 
 def add_video(videoID):

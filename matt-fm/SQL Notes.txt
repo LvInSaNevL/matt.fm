@@ -1,0 +1,15 @@
+SQL Notes:
+
+## Insert song
+
+-- IF SELECT exists (SELECT * FROM youtube.song WHERE yt_id = 'a9ifihas')
+-- {
+-- INSERT INTO youtube.song 
+-- 	(yt_id, published, genre, title, description, viewcount, duration, artist, thumbnail) 
+-- 	VALUES 
+-- 	('a9ifihas', '2025-03-10', 'Pop', 'Never Gonna Give You Up',
+-- }
+-- ELSE 
+-- {
+	 
+-- }

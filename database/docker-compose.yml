@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  postgres:
+    container_name: mattfm_sql
+    image: postgres
+    hostname: mattfm_sql
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: 'admin'
+      POSTGRES_PASSWORD: 'password1234'
+    volumes:
+      - ./database:/matt-fm
+      - ./database/matt-fm.sql:/docker-entrypoint-initdb.d/matt-fm.sql
+    labels:
+      - --traefik.enable=false
+    restart: unless-stopped
+  # Database managment console
+  pgadmin:
+    container_name: mattfm_sql_admin
+    image: dpage/pgadmin4
+    depends_on:
+      - postgres
+    hostname: mattfm_sql_admin
+    ports:
+      - "8080:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: 'pgadmin4@pgadmin.org'
+      PGADMIN_DEFAULT_PASSWORD: 'test1234'
+    restart: unless-stopped
