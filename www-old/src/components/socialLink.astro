@@ -1,0 +1,91 @@
+---
+const { platform, color, handle, url } = Astro.props;
+
+function getHandleTextColor(bgColor: string) {
+  const hex = bgColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  if (brightness > 200) return '#555555';
+  if (brightness > 160) return '#666666';
+  if (brightness > 120) return '#777777';
+  return '#AAAAAA';
+}
+
+const handleColor = getHandleTextColor(color);
+---
+
+<div class="socialCard" style={`--accent-color: ${color}; --handle-color: ${handleColor};`} onclick={`window.open('${url}', '_blank')`}>
+  <div class="iconWrapper">
+    <img src={`/${platform}.png`} alt={`${platform} logo`} />
+  </div>
+  <div class="textContent">
+    <div class="platform">{platform}</div>
+    <div class="handle" >{handle}</div>
+  </div>
+</div>
+
+<style>
+.socialCard {
+  flex: 0 1 clamp(280px, 45%, 400px);
+  display: flex;
+  align-items: center;
+  height: 5.5rem;
+  max-width: 475px;
+  border: 1.5px solid rgba(0, 0, 0, 0.4); 
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  background-color: var(--accent-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  gap: 1rem;
+  color: black;
+}
+
+.socialCard:hover {
+  transform: scale(1.015);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.iconWrapper {
+  background-color: rgba(33, 33, 33, 0.858); /* darker transparent backdrop */
+  border: 1.5px solid rgba(0, 0, 0, 0.4);  /* thin black border */
+  border-radius: 8px;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); /* subtle shadow */
+}
+
+
+.iconWrapper img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.3));
+}
+
+.textContent {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.platform {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: white;
+}
+
+.handle {
+  font-size: 0.95rem;
+  color: var(--handle-color, #AAAAAA);
+}
+
+</style>
