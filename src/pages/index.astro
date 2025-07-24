@@ -1,0 +1,62 @@
+---
+//import Welcome from '../components/Welcome.astro';
+//import Layout from '../layouts/Layout.astro';
+import "../styles/main.css";
+import "../styles/index.css"
+
+import WelcomeSubline from "../components/welcomeSubline.astro";
+import SocialCallAction from "../components/socialCallAction.astro";
+import SocialLink from "../components/socialLink.astro";
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/Logo_Transparent.png" />
+		<title>Matt.FM</title>
+	</head>
+	<body>
+		<div class="welcomeBanner">   
+			<div class="welcomeTitle">
+				Welcome to Matt.FM!
+			</div>
+			<WelcomeSubline />
+			<div class="welcomePlaylistLink">
+				<h1>Listen to <a href="https://playlist.matt-fm.com" target="_blank">the playlist</a>.</h1>
+				<h2>New hits every day</h2>
+			</div>		
+		</div>
+		<SocialCallAction />
+		<div class="socialBanner">   
+			<SocialLink platform="Discord" 
+						color="#9E46DA" 
+						handle="Come chat with us!"
+						url="https://discord.gg/4h2xBntjhZ"/>
+			<SocialLink platform="YouTube" 
+						color="#B31911" 
+						handle="@MattFM-Radio"
+						url="https://www.youtube.com/@MattFM-Radio"/>
+			<SocialLink platform="TikTok" 
+						color="#00BFB8" 
+						handle="@matt.fm"
+						url="https://www.tiktok.com/@matt.fm"/>
+			<SocialLink platform="Instagram" 
+						color="#9E46DA" 
+						handle="matt.fm_radio"
+						url="https://www.instagram.com/matt.fm_radio"/>
+			<SocialLink platform="Bluesky" 
+						color="#1185FE" 
+						handle="@matt-fm.bsky.social"
+						url="https://bsky.app/profile/matt-fm.bsky.social"/>
+			<SocialLink platform="Mastodon" 
+						color="#858AFA" 
+						handle="@matt_fm"
+						url="https://mastodon.social/@matt_fm"/>
+			<SocialLink platform="Twitter" 
+						color="#1D9BF0" 
+						handle="@MattFM_Radio"
+						url="https://x.com/MattFM_Radio"/>
+		</div>
+	</body>
+</html>
